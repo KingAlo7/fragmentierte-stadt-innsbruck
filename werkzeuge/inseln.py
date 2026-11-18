@@ -3,12 +3,11 @@
 Aufruf: python inseln.py daten/bloecke.geojson lu.json poi.json content.json daten/flaechen.json
 Schreibt daten/flaechen.json (Karte) und daten/flaechen_wohnen.json (Wohnen im Detail).
 
-Name = Bezeichnung + Ort (+ Bauform) + (Grenzstraßen)
+Name = Bezeichnung + Ort (+ Bauform)
 - Bezeichnung: Eigenname aus OSM, wenn ein benanntes Gelände die Insel prägt (Gewerbegebiet, Einkaufszentrum, Schule,
   Park, Sportanlage), sonst die genaue Nutzung (Wohngebiet, Sportanlage, Park/Grünanlage ...).
 - Ort: alle OSM-Ortsteile in der Insel (höchstens drei), sonst der nächste Ortsteil bis 300 m, sonst Stadtteil bzw. Gemeinde.
 - Bauform (Wohnen): nach Geschoßfläche der amtlichen Gebäude (tiris, Höhe aus Laserscan).
-- Grenzstraßen: die bis zu drei benannten Straßen, die die Insel am längsten begleiten (OSM).
 """
 import json, sys, math, base64
 from collections import Counter
@@ -202,7 +201,6 @@ def describe(feats, handcats, pre):
                 text = 'Schul- bzw. Hochschulgelände: überwiegend als Bildungsfläche gewidmet oder in OSM als Schul-/Hochschulgelände erfasst.'
             else:
                 text = f'{pr.get("klasse") or "Erholungsfläche"} laut amtlicher Realnutzung (Land Tirol).'
-        if st: name += ' (' + ' – '.join(st) + ')'
         # handgeschriebener Text derselben Kategorie
         cur = None
         for cp, a in curated:

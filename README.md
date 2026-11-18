@@ -63,10 +63,9 @@ Zusätzliche Ebenen:
   - Nur Hauptstraßen (OSM secondary und höher), Autobahn, Bahn und Inn teilen die Gebiete, als feine Linie. Die Straßenfläche selbst ist gefüllt.
   - Die Gebiete werden an Gemeindegrenzen geteilt.
   - Dadurch verschwinden kleine Schulen und Läden in ihrer Umgebung. Bildung und Konsum zeigen nur noch größere Standorte.
-- **Namen:** Bezeichnung + Ort (+ Bauform) + (Grenzstraßen), etwa „Wohngebiet Pradl – Mehrfamilienhäuser (Andechsstraße – Amraser-See-Straße – Reichenauer Straße)“.
+- **Namen:** Bezeichnung + Ort (+ Bauform), etwa „Wohngebiet Dreiheiligen, Pradl, Reichenau – Mehrfamilienhäuser“.
   - **Bezeichnung:** Eigenname aus OSM, wenn ein benanntes Gelände mindestens die halbe Insel ausmacht. Bei Gewerbe zählen Gebietsnamen wie „Gewerbegebiet Roßau“. Sonst steht die genaue Nutzung da.
   - **Ort:** alle OSM-Ortsteile in der Insel, sonst der nächste bis 300 m, sonst Stadtteil oder Gemeinde.
-  - **Grenzstraßen:** die bis zu drei benannten Straßen, die die Insel am längsten begleiten.
 - **Prüfung** (Stand vor der Generalisierung): Die straßengenauen Blöcke wurden gegen OSM-Objekte geprüft, die nicht zur Abgrenzung verwendet wurden. Der Anteil, der in der Insel der passenden Kategorie liegt, ist deutlich gestiegen:
 
   | OSM-Objekte | vorher (Heatmap-Blobs) | jetzt |
