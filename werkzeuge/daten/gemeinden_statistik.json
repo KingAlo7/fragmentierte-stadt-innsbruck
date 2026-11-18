@@ -1,0 +1,514 @@
+{
+"Innsbruck": {
+"gkz": "70101",
+"bev": 132166,
+"unt": 12345,
+"ast": 14661,
+"besch": 110030,
+"auspendler": "28,3"
+},
+"Absam": {
+"gkz": "70301",
+"bev": 7330,
+"unt": 583,
+"ast": 639,
+"besch": 2926,
+"auspendler": "79,1"
+},
+"Aldrans": {
+"gkz": "70302",
+"bev": 2840,
+"unt": 276,
+"ast": 301,
+"besch": 710,
+"auspendler": "81,7"
+},
+"Ampass": {
+"gkz": "70303",
+"bev": 1837,
+"unt": 160,
+"ast": 172,
+"besch": 418,
+"auspendler": "81,5"
+},
+"Axams": {
+"gkz": "70304",
+"bev": 6360,
+"unt": 410,
+"ast": 466,
+"besch": 1475,
+"auspendler": "81,8"
+},
+"Baumkirchen": {
+"gkz": "70305",
+"bev": 1254,
+"unt": 72,
+"ast": 83,
+"besch": 143,
+"auspendler": "88,0"
+},
+"Birgitz": {
+"gkz": "70306",
+"bev": 1485,
+"unt": 97,
+"ast": 107,
+"besch": 267,
+"auspendler": "87,8"
+},
+"Ellbögen": {
+"gkz": "70307",
+"bev": 1182,
+"unt": 71,
+"ast": 76,
+"besch": 134,
+"auspendler": "86,8"
+},
+"Flaurling": {
+"gkz": "70308",
+"bev": 1330,
+"unt": 78,
+"ast": 82,
+"besch": 244,
+"auspendler": "88,0"
+},
+"Fritzens": {
+"gkz": "70309",
+"bev": 2179,
+"unt": 137,
+"ast": 158,
+"besch": 677,
+"auspendler": "83,1"
+},
+"Fulpmes": {
+"gkz": "70310",
+"bev": 4618,
+"unt": 382,
+"ast": 436,
+"besch": 2117,
+"auspendler": "60,0"
+},
+"Gnadenwald": {
+"gkz": "70311",
+"bev": 859,
+"unt": 81,
+"ast": 90,
+"besch": 213,
+"auspendler": "77,4"
+},
+"Götzens": {
+"gkz": "70312",
+"bev": 4223,
+"unt": 316,
+"ast": 349,
+"besch": 1091,
+"auspendler": "81,6"
+},
+"Gries am Brenner": {
+"gkz": "70313",
+"bev": 1344,
+"unt": 101,
+"ast": 124,
+"besch": 395,
+"auspendler": "78,8"
+},
+"Gries im Sellrain": {
+"gkz": "70314",
+"bev": 633,
+"unt": 43,
+"ast": 54,
+"besch": 121,
+"auspendler": "80,1"
+},
+"Grinzens": {
+"gkz": "70315",
+"bev": 1483,
+"unt": 74,
+"ast": 83,
+"besch": 182,
+"auspendler": "89,6"
+},
+"Gschnitz": {
+"gkz": "70317",
+"bev": 466,
+"unt": 44,
+"ast": 45,
+"besch": 74,
+"auspendler": "79,5"
+},
+"Hatting": {
+"gkz": "70318",
+"bev": 1492,
+"unt": 83,
+"ast": 95,
+"besch": 164,
+"auspendler": "88,6"
+},
+"Inzing": {
+"gkz": "70319",
+"bev": 4132,
+"unt": 275,
+"ast": 315,
+"besch": 1808,
+"auspendler": "78,2"
+},
+"Kematen in Tirol": {
+"gkz": "70320",
+"bev": 3312,
+"unt": 244,
+"ast": 297,
+"besch": 2311,
+"auspendler": "78,3"
+},
+"Kolsass": {
+"gkz": "70322",
+"bev": 1684,
+"unt": 141,
+"ast": 161,
+"besch": 553,
+"auspendler": "81,6"
+},
+"Kolsassberg": {
+"gkz": "70323",
+"bev": 876,
+"unt": 75,
+"ast": 77,
+"besch": 126,
+"auspendler": "81,5"
+},
+"Lans": {
+"gkz": "70325",
+"bev": 1181,
+"unt": 139,
+"ast": 158,
+"besch": 697,
+"auspendler": "76,8"
+},
+"Leutasch": {
+"gkz": "70326",
+"bev": 2523,
+"unt": 318,
+"ast": 348,
+"besch": 858,
+"auspendler": "57,2"
+},
+"Mieders": {
+"gkz": "70328",
+"bev": 2004,
+"unt": 182,
+"ast": 209,
+"besch": 843,
+"auspendler": "78,2"
+},
+"Mils": {
+"gkz": "70329",
+"bev": 4716,
+"unt": 518,
+"ast": 577,
+"besch": 2618,
+"auspendler": "79,6"
+},
+"Mutters": {
+"gkz": "70331",
+"bev": 2315,
+"unt": 209,
+"ast": 239,
+"besch": 711,
+"auspendler": "79,8"
+},
+"Natters": {
+"gkz": "70332",
+"bev": 2157,
+"unt": 187,
+"ast": 205,
+"besch": 926,
+"auspendler": "77,6"
+},
+"Navis": {
+"gkz": "70333",
+"bev": 2056,
+"unt": 161,
+"ast": 178,
+"besch": 733,
+"auspendler": "79,8"
+},
+"Neustift im Stubaital": {
+"gkz": "70334",
+"bev": 4981,
+"unt": 511,
+"ast": 566,
+"besch": 2209,
+"auspendler": "56,1"
+},
+"Oberhofen im Inntal": {
+"gkz": "70335",
+"bev": 1953,
+"unt": 122,
+"ast": 134,
+"besch": 584,
+"auspendler": "79,3"
+},
+"Obernberg am Brenner": {
+"gkz": "70336",
+"bev": 396,
+"unt": 55,
+"ast": 60,
+"besch": 100,
+"auspendler": "69,4"
+},
+"Oberperfuss": {
+"gkz": "70337",
+"bev": 3151,
+"unt": 227,
+"ast": 247,
+"besch": 514,
+"auspendler": "80,9"
+},
+"Patsch": {
+"gkz": "70338",
+"bev": 1156,
+"unt": 92,
+"ast": 104,
+"besch": 206,
+"auspendler": "84,1"
+},
+"Pettnau": {
+"gkz": "70339",
+"bev": 1119,
+"unt": 60,
+"ast": 69,
+"besch": 182,
+"auspendler": "87,6"
+},
+"Pfaffenhofen": {
+"gkz": "70340",
+"bev": 1297,
+"unt": 86,
+"ast": 104,
+"besch": 756,
+"auspendler": "86,4"
+},
+"Polling in Tirol": {
+"gkz": "70342",
+"bev": 1383,
+"unt": 82,
+"ast": 94,
+"besch": 562,
+"auspendler": "81,6"
+},
+"Ranggen": {
+"gkz": "70343",
+"bev": 1150,
+"unt": 80,
+"ast": 86,
+"besch": 191,
+"auspendler": "84,3"
+},
+"Reith bei Seefeld": {
+"gkz": "70344",
+"bev": 1559,
+"unt": 158,
+"ast": 177,
+"besch": 519,
+"auspendler": "75,8"
+},
+"Rinn": {
+"gkz": "70345",
+"bev": 1931,
+"unt": 144,
+"ast": 163,
+"besch": 357,
+"auspendler": "81,6"
+},
+"Rum": {
+"gkz": "70346",
+"bev": 9516,
+"unt": 533,
+"ast": 645,
+"besch": 5026,
+"auspendler": "83,1"
+},
+"St. Sigmund im Sellrain": {
+"gkz": "70347",
+"bev": 177,
+"unt": 18,
+"ast": 18,
+"besch": 29,
+"auspendler": "79,8"
+},
+"Scharnitz": {
+"gkz": "70348",
+"bev": 1408,
+"unt": 94,
+"ast": 109,
+"besch": 294,
+"auspendler": "77,2"
+},
+"Schmirn": {
+"gkz": "70349",
+"bev": 870,
+"unt": 50,
+"ast": 55,
+"besch": 90,
+"auspendler": "86,7"
+},
+"Schönberg im Stubaital": {
+"gkz": "70350",
+"bev": 1083,
+"unt": 89,
+"ast": 108,
+"besch": 525,
+"auspendler": "75,9"
+},
+"Seefeld in Tirol": {
+"gkz": "70351",
+"bev": 3629,
+"unt": 421,
+"ast": 482,
+"besch": 2121,
+"auspendler": "45,8"
+},
+"Sellrain": {
+"gkz": "70352",
+"bev": 1346,
+"unt": 70,
+"ast": 78,
+"besch": 120,
+"auspendler": "87,9"
+},
+"Sistrans": {
+"gkz": "70353",
+"bev": 2290,
+"unt": 199,
+"ast": 216,
+"besch": 527,
+"auspendler": "83,2"
+},
+"Hall in Tirol": {
+"gkz": "70354",
+"bev": 14735,
+"unt": 1201,
+"ast": 1493,
+"besch": 12592,
+"auspendler": "68,0"
+},
+"Steinach am Brenner": {
+"gkz": "70355",
+"bev": 3679,
+"unt": 301,
+"ast": 359,
+"besch": 1823,
+"auspendler": "74,6"
+},
+"Telfes im Stubai": {
+"gkz": "70356",
+"bev": 1617,
+"unt": 124,
+"ast": 134,
+"besch": 292,
+"auspendler": "83,2"
+},
+"Telfs": {
+"gkz": "70357",
+"bev": 16390,
+"unt": 1005,
+"ast": 1214,
+"besch": 7039,
+"auspendler": "62,2"
+},
+"Thaur": {
+"gkz": "70358",
+"bev": 4412,
+"unt": 457,
+"ast": 511,
+"besch": 2249,
+"auspendler": "77,6"
+},
+"Trins": {
+"gkz": "70359",
+"bev": 1393,
+"unt": 111,
+"ast": 123,
+"besch": 193,
+"auspendler": "83,7"
+},
+"Tulfes": {
+"gkz": "70360",
+"bev": 1740,
+"unt": 182,
+"ast": 193,
+"besch": 418,
+"auspendler": "81,9"
+},
+"Unterperfuss": {
+"gkz": "70361",
+"bev": 244,
+"unt": 19,
+"ast": 24,
+"besch": 176,
+"auspendler": "77,7"
+},
+"Vals": {
+"gkz": "70362",
+"bev": 528,
+"unt": 44,
+"ast": 48,
+"besch": 80,
+"auspendler": "87,2"
+},
+"Völs": {
+"gkz": "70364",
+"bev": 7322,
+"unt": 370,
+"ast": 495,
+"besch": 3266,
+"auspendler": "81,3"
+},
+"Volders": {
+"gkz": "70365",
+"bev": 4622,
+"unt": 334,
+"ast": 380,
+"besch": 1169,
+"auspendler": "82,1"
+},
+"Wattenberg": {
+"gkz": "70366",
+"bev": 803,
+"unt": 73,
+"ast": 78,
+"besch": 186,
+"auspendler": "84,9"
+},
+"Wattens": {
+"gkz": "70367",
+"bev": 8162,
+"unt": 551,
+"ast": 641,
+"besch": 5704,
+"auspendler": "64,4"
+},
+"Wildermieming": {
+"gkz": "70368",
+"bev": 1015,
+"unt": 97,
+"ast": 105,
+"besch": 376,
+"auspendler": "75,6"
+},
+"Zirl": {
+"gkz": "70369",
+"bev": 8259,
+"unt": 652,
+"ast": 773,
+"besch": 3794,
+"auspendler": "76,5"
+},
+"Matrei am Brenner": {
+"gkz": "70370",
+"bev": 3556,
+"unt": 235,
+"ast": 263,
+"besch": 1153,
+"auspendler": "74,9"
+}
+}

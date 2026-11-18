@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fragmentierte Stadt Innsbruck</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<style>
+:root{
+  --bg:#f6f5f2; --panel:#ffffff; --ink:#22262b; --muted:#646b73; --line:#e3e1dc; --chip:#f0eeea;
+  --accent:#2d4a63;
+  --c-konsum:#e8892b; --c-gewerbe:#7d55b3; --c-wohnen:#d4ad2f; --c-erholung:#3fae8c; --c-gehoben:#f4b400; --c-gemischt:#e03c7a;
+  --c-gross:#2a6fdb; --c-bildung:#2f72c4; --c-barriere:#3d4249;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.app{display:grid;grid-template-columns:360px 1fr;height:100vh}
+aside{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;display:flex;flex-direction:column}
+#map{height:100%;background:#e9e7e2}
+header{padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+header h1{margin:0 0 2px;font-size:19px;letter-spacing:.01em}
+header p{margin:0;color:var(--muted);font-size:13px}
+section{padding:14px 20px;border-bottom:1px solid var(--line)}
+section h2{margin:0 0 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.seg{display:flex;background:var(--chip);border-radius:9px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:transparent;padding:7px 6px;border-radius:7px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:600}
+.seg button:focus-visible,.cat:focus-within,.sw:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.cats{display:flex;flex-direction:column;gap:2px}
+.cat{display:flex;align-items:center;gap:10px;padding:5px 6px;border-radius:7px;cursor:pointer;user-select:none}
+.cat:hover{background:var(--chip)}
+.cat input{position:absolute;opacity:0;pointer-events:none}
+.sw-box{width:18px;height:18px;border-radius:5px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 35%,transparent);flex:none;display:grid;place-items:center}
+.cat input:not(:checked)+.sw-box{background:transparent;border-color:#c9c6c0}
+.cat input:not(:checked)~span{color:#a3a7ac}
+.sw-box::after{content:"";width:8px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px);opacity:0}
+.cat input:checked+.sw-box{background:var(--c)}
+.cat input:checked+.sw-box::after{opacity:1}
+.cat .cnt{margin-left:auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.heat-mode .cat[data-k="barriere"] .cnt{visibility:hidden}
+.toggles{display:flex;flex-direction:column;gap:6px}
+.sw{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px}
+.sw input{position:absolute;opacity:0;pointer-events:none}
+.sw .track{width:32px;height:18px;border-radius:9px;background:#cfccc6;position:relative;flex:none;transition:background .15s}
+.sw .track::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}
+.sw input:checked+.track{background:var(--accent)}
+.sw input:checked+.track::after{transform:translateX(14px)}
+#info{flex:1;padding:16px 20px 22px}
+#info .empty{color:var(--muted);font-size:14px}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:20px;color:#fff;background:var(--c)}
+#info h3{margin:8px 0 4px;font-size:20px;line-height:1.2}
+#info .lage{color:var(--muted);font-size:13px;margin:0 0 10px}
+#info p{margin:0 0 10px}
+#info .modell{border-left:3px solid var(--c);background:var(--chip);padding:8px 10px;border-radius:0 6px 6px 0;font-size:14px}
+#info .modell b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:2px}
+#info .src{font-size:12px;color:var(--muted)}
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 12px}
+.kpi div{background:var(--chip);border-radius:8px;padding:7px 10px}
+.kpi b{display:block;font-size:19px;font-variant-numeric:tabular-nums}
+.kpi span{font-size:11.5px;color:var(--muted)}
+.chart{width:100%;height:auto;display:block;margin:4px 0 4px}
+.chart-leg{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-bottom:10px;flex-wrap:wrap}
+.chart-leg i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+details{font-size:14px}
+details summary{cursor:pointer;font-weight:600}
+details p{margin:8px 0 0;color:#3b4148}
+.legend-lines{display:grid;grid-template-columns:44px 1fr;gap:6px 10px;align-items:center;font-size:13px;margin-top:10px}
+.legend-lines svg{display:block}
+footer{padding:10px 20px 14px;font-size:11.5px;color:var(--muted)}
+footer p{margin:0 0 4px}
+.hidden{display:none!important}
+.field{display:flex;align-items:center;gap:10px;font-size:13.5px;margin-top:10px}
+.field label{color:var(--muted);min-width:64px}
+.field select{flex:1;font:inherit;font-size:13.5px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:#fff}
+.field input[type=range]{flex:1;accent-color:var(--accent)}
+.heat-legend{margin-top:12px;font-size:12.5px;color:#3b4148}
+.heat-legend .ramp{height:12px;border-radius:6px;margin:4px 0 2px;border:1px solid rgba(0,0,0,.06)}
+.heat-legend .ends{display:flex;justify-content:space-between;color:var(--muted);font-size:11.5px}
+.heat-legend .mix{display:flex;flex-wrap:wrap;gap:4px 10px;margin:6px 0}
+.heat-legend .mix span{display:inline-flex;align-items:center;gap:5px}
+.heat-legend .mix i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+
+/* Grenzen-Beschriftung */
+.gem-label{background:none;border:0}
+.gem-label span{display:block;transform:translate(-50%,-50%);white-space:nowrap;font-weight:700;font-size:13px;
+  letter-spacing:.32em;text-transform:uppercase;color:#4a5560;opacity:.82;
+  text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 6px #fff,0 0 10px rgba(255,255,255,.9)}
+.gem-label.big span{font-size:16px;letter-spacing:.4em}
+.gem-label.small span{font-size:10.5px;letter-spacing:.24em;opacity:.75}
+.st-label span{display:block;transform:translate(-50%,-50%);white-space:nowrap;font-size:10.5px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;color:#6c7680;text-shadow:0 0 3px #fff,0 0 5px #fff}
+.sat .gem-label span{color:#fff;text-shadow:0 0 4px rgba(0,0,0,.9),0 0 8px rgba(0,0,0,.6)}
+.sat .st-label span{color:#e9edf0;text-shadow:0 0 3px rgba(0,0,0,.95)}
+.hide-st .st-label{display:none}
+
+/* Karten-Steuerelemente */
+.mapbox{background:rgba(255,255,255,.95);border-radius:10px;box-shadow:0 1px 5px rgba(0,0,0,.2);padding:9px 12px;font-size:12.5px;color:var(--ink)}
+.probe{width:220px}
+.probe h4{margin:0 0 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.probe .row{display:grid;grid-template-columns:92px 1fr 30px;gap:6px;align-items:center;margin:2px 0}
+.probe .bar{height:7px;border-radius:4px;background:#eceae6;overflow:hidden}
+.probe .bar i{display:block;height:100%;background:var(--c);border-radius:4px}
+.probe .val{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.probe .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.probe .hint{color:var(--muted)}
+.timebox{width:330px;max-width:calc(100vw - 30px)}
+.timebox .top{display:flex;align-items:center;gap:10px}
+.timebox button.play{width:32px;height:32px;border-radius:50%;border:0;background:var(--accent);color:#fff;cursor:pointer;flex:none;display:grid;place-items:center}
+.timebox button.play:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.timebox .clock{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;min-width:58px}
+.timebox .seg{flex:1}
+.timebox .seg button{padding:4px 4px;font-size:12px}
+.timebox input[type=range]{width:100%;margin:8px 0 2px;accent-color:var(--accent)}
+.timebox .ramp{height:8px;border-radius:4px;background:linear-gradient(90deg,#ffd166,#f4a259,#e4572e,#9b1d20)}
+.timebox .ends{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:2px}
+.timebox .cap{color:var(--muted);font-size:11.5px;margin-top:5px;line-height:1.35}
+.station-ico{background:none;border:0}
+.station-ico span{display:block;width:12px;height:12px;transform:translate(-50%,-50%) rotate(45deg);background:#1f2a35;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.station-ico.est span{background:#fff;border-color:#1f2a35}
+
+.leaflet-tooltip.pt-tip{font-weight:600;font-size:12.5px}
+.leaflet-container{font:inherit}
+.leaflet-container a.leaflet-popup-close-button{display:none}
+.leaflet-control-attribution{font-size:10.5px}
+.sat-pane-dim{filter:saturate(.7) brightness(.92)}
+.osm-pane-dim{filter:grayscale(.75) brightness(1.06) contrast(.88)}
+
+@media (max-width:820px){
+  .app{grid-template-columns:1fr;grid-template-rows:62vh auto;height:auto}
+  #map{height:62vh;grid-row:1}
+  aside{grid-row:2;border-right:0;border-top:1px solid var(--line);overflow:visible}
+  header,section,#info,footer{padding-left:16px;padding-right:16px}
+  .probe{width:168px;padding:7px 9px}.probe .row{grid-template-columns:66px 1fr 28px}
+  .timebox{width:250px;padding:7px 9px}.timebox .cap{display:none}.timebox .clock{font-size:16px;min-width:46px}.timebox button.play{width:28px;height:28px}
+  .timebox .ends span:last-child{font-size:0}.timebox .ends span:last-child::after{content:"2.600+ Kfz/h";font-size:11px}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside>
+    <header>
+      <h1>Die fragmentierte Stadt</h1>
+      <p>Innsbruck und alle Nachbargemeinden (plus Götzens) · Stadtmodell nach Borsdorf</p>
+    </header>
+
+    <section aria-labelledby="h-view">
+      <h2 id="h-view">Ansicht</h2>
+      <div class="seg" role="group" aria-labelledby="h-view" id="viewSeg">
+        <button type="button" data-view="map" aria-pressed="true">Karte</button>
+        <button type="button" data-view="wohn">Wohnen im Detail</button>
+        <button type="button" data-view="heat">Heatmap</button>
+      </div>
+      <div id="wohnNote" class="hidden" style="margin-top:10px">
+        <p style="font-size:12.5px;margin:0 0 8px;color:var(--muted)">Dichte der drei Bauformen des Wohnens als Heatmap. Gestrichelt: die daraus abgeleiteten Teilflächen (anklickbar).</p>
+        <div class="heat-legend" id="wohnLegend"></div>
+      </div>
+      <div id="heatOpts" class="hidden">
+        <div class="seg" role="group" aria-label="Heatmap-Darstellung" id="heatSeg" style="margin-top:10px">
+          <button type="button" data-hm="all" aria-pressed="true">Alle Kategorien</button>
+          <button type="button" data-hm="one">Eine Kategorie</button>
+        </div>
+        <div class="field hidden" id="heatCatField"><label for="heatCat">Kategorie</label><select id="heatCat"></select></div>
+        <div class="field"><label for="heatOp">Deckkraft</label><input type="range" id="heatOp" min="30" max="100" value="90"></div>
+        <div class="heat-legend" id="heatLegend"></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-cat">
+      <h2 id="h-cat">Kategorien</h2>
+      <div class="cats" id="cats"></div>
+      <div class="legend-lines" aria-label="Linien-Legende">
+        <svg width="44" height="12"><line x1="2" y1="6" x2="42" y2="6" stroke="#3d4249" stroke-width="5" stroke-linecap="round"/><line x1="2" y1="6" x2="42" y2="6" stroke="#fff" stroke-width="1.2" stroke-dasharray="5 4"/></svg><span>Autobahn A12 / A13</span>
+        <svg width="44" height="12"><line x1="2" y1="6" x2="42" y2="6" stroke="#3d4249" stroke-width="3"/><line x1="2" y1="6" x2="42" y2="6" stroke="#fff" stroke-width="1.6" stroke-dasharray="6 6"/></svg><span>Westbahn (Eisenbahn)</span>
+        <svg width="44" height="12"><line x1="2" y1="6" x2="42" y2="6" stroke="#4d5e6e" stroke-width="7" stroke-opacity=".55" stroke-linecap="round"/></svg><span>Inn</span>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-layers">
+      <h2 id="h-layers">Ebenen</h2>
+      <div class="toggles">
+        <label class="sw"><input type="checkbox" id="tTraffic"><span class="track"></span>Verkehr (Zähldaten + Modell)</label>
+        <label class="sw"><input type="checkbox" id="tZoning"><span class="track"></span>Flächenwidmung (amtlich)</label>
+        <label class="sw"><input type="checkbox" id="tDistricts"><span class="track"></span>Stadtteilgrenzen Innsbruck</label>
+      </div>
+      <div id="zoneLegend" class="heat-legend hidden"></div>
+      <h2 style="margin-top:14px" id="h-base">Grundkarte</h2>
+      <div class="seg" role="group" aria-labelledby="h-base" id="baseSeg">
+        <button type="button" data-base="gray" aria-pressed="true">Hell</button>
+        <button type="button" data-base="osm">OSM</button>
+        <button type="button" data-base="sat">Satellit</button>
+      </div>
+    </section>
+
+    <div id="info" aria-live="polite">
+      <details open>
+        <summary>Was ist die „fragmentierte Stadt“?</summary>
+        <p>Axel Borsdorf (Innsbruck) beschreibt, wie die kompakte, ringförmig gewachsene Stadt seit den 1970er‑Jahren in <b>Inseln</b> zerfällt: Konsum, Produktion, Wohnen, Bildung und Freizeit bilden voneinander getrennte, funktional spezialisierte Bereiche. Sie liegen oft an Autobahnen und Ausfallstraßen, sind durch <b>Barrieren</b> getrennt und werden durch <b>Pendelverkehr</b> verbunden. Die Grenze zwischen Stadt und Umland verschwimmt.</p>
+        <p><b>Karte</b> zeigt die Inseln – automatisch aus den Daten abgegrenzt. <b>Wohnen im Detail</b> zeigt als Heatmap, wo Einfamilienhäuser, Mehrfamilienhäuser und Großwohnanlagen dominieren und wo sie sich mischen. <b>Heatmap</b> berechnet dieselben Kategorien aus echten Gebäude‑, Geschäfts‑ und Landnutzungsdaten. <b>Verkehr</b> zeigt für alle Straßen den Verkehr über den Tag: gemessen an den Zählstellen, dazwischen aus einem an diesen Messungen kalibrierten Verkehrsmodell.</p>
+      </details>
+      <p class="empty" style="margin-top:14px">Klicke auf eine Fläche, einen Punkt, eine Straße (bei eingeschaltetem Verkehr) oder eine Zählstelle (◆), um mehr zu erfahren.</p>
+    </div>
+
+    <footer>
+      <p>Flächen automatisch abgeleitet: An jeder Stelle gewinnt die stärkste Kategorie der Heatmap (Wohnen als eine Kategorie; im Detail-Tab innerhalb der Wohnflächen die stärkste Bauform); Grenzen geglättet, Splitter unter 4 ha entfernt. Heatmap: berechnet aus der amtlichen Flächenwidmung sowie OpenStreetMap‑Gebäuden, ‑Geschäften und ‑Landnutzung (Stand __OSMDATE__), Kerndichte σ ≈ __SIGMA__ m.</p>
+      <p>Verkehr: Zählstellen des Landes Tirol (Stundendaten Sept. 2026, Jahreswerte 2025) und der ASFINAG. Alle übrigen Straßen: eigenes Verkehrsmodell (Gravitationsmodell und Umlegung auf das OSM‑Straßennetz), an den Zählstellen kalibriert; Rohmodell R² = __R2__.</p>
+      <p>Flächenwidmung und Einkaufszentren: Land Tirol – tiris (CC BY 4.0). Einwohner und Beschäftigte je Gemeinde: Statistik Austria, Abgestimmte Erwerbsstatistik 2024 (data.statistik.gv.at).</p>
+      <p>Grenzen und Straßen: © OpenStreetMap‑Mitwirkende (ODbL).</p>
+    </footer>
+  </aside>
+  <div id="map" role="region" aria-label="Karte"></div>
+</div>
+
+<script>
+/* ===== eingebettete Daten ===== */
+const BOUNDARIES = __BOUNDARIES__;
+const LINES = __LINES__;
+const HEAT = __HEAT__;
+const TRAFFIC = __TRAFFIC__;
+const NET = __NET__;
+const ZONING = __ZONING__;
+__DATA__
+</script>
+<script>
+/* ===== Karte ===== */
+const CATS = {
+  konsum:   {label:"Konsum",                         short:"Konsum",      hex:"#e8892b"},
+  gewerbe:  {label:"Gewerbe & Produktion",           short:"Gewerbe",     hex:"#7d55b3"},
+  wohnen:   {label:"Wohnen",                         short:"Wohnen",      hex:"#d4ad2f"},
+  gehoben:  {label:"Wohnen: Einfamilienhäuser", short:"Einfamilienh.", hex:"#f4b400"},
+  gemischt: {label:"Wohnen: Mehrfamilienhäuser", short:"Mehrfamilienh.", hex:"#e03c7a"},
+  gross:    {label:"Wohnen: Großwohnanlagen",        short:"Großwohnanl.",hex:"#2a6fdb"},
+  bildung:  {label:"Bildung & Wissen",               short:"Bildung",     hex:"#2f72c4"},
+  erholung: {label:"Erholung & Freizeit",            short:"Erholung",    hex:"#3fae8c"},
+  barriere: {label:"Barrieren",                      short:"Barrieren",   hex:"#3d4249"}
+};
+/* Was die Heatmap je Kategorie misst (Indikatoren aus OSM) */
+const SUBK = ['gehoben','gemischt','gross'];
+const VIEW_K = {map:['konsum','gewerbe','wohnen','bildung','erholung','barriere'],
+  wohn:['gehoben','gemischt','gross','barriere'],
+  heat:['konsum','gewerbe','wohnen','bildung','erholung']};
+const HEAT_DEF = {
+  wohnen:"Alle Wohngebäude zusammen: Grundfläche der Ein‑ und Zweifamilienhäuser plus Geschoßfläche der Mehrfamilienhäuser und Wohnanlagen; Wohnwidmungen grenzen ein, welche Gebäude ohne genaue Angabe als Wohngebäude zählen.",
+  erholung:"Widmung als Grünanlage, Park, Sport‑ oder Spielplatz, Kleingarten, Golfplatz o. Ä.; OSM‑Parks, Sport‑ und Spielplätze, Bäder, Sportzentren, Kleingärten, Alpenzoo und Campingplätze.",
+  konsum:"Widmung als Einkaufszentrum/Handelsbetrieb und Kerngebiet, Geschäfte (Einkaufszentren und Supermärkte stärker gewichtet), Gastronomie, Banken, Kinos sowie Handelsflächen.",
+  gewerbe:"Widmung als Gewerbe‑ und Industriegebiet bzw. Betriebs‑Sonderfläche, Industrie‑ und Gewerbeflächen laut OSM, Hallen‑, Lager‑ und Bürogebäude (Grundfläche), Handwerks‑ und Bürostandorte.",
+  gehoben:"Grundfläche freistehender Ein‑ und Zweifamilienhäuser bzw. kleiner Wohngebäude (≤ 260 m², ≤ 3 Geschoße). Indikator für lockere, suburbane Bebauung – über das Einkommen sagt OSM nichts.",
+  gemischt:"Geschoßfläche mittelgroßer Mehrfamilien‑ und Wohnhäuser (unter 7 Geschoßen, unter 1100 m² Grundfläche).",
+  gross:"Geschoßfläche großer Wohnbauten: ab 7 Geschoßen oder ab 1100 m² Grundfläche (Wohnblöcke, Wohnanlagen, Hochhäuser).",
+  bildung:"Sonderflächen für Bildung laut Widmung, Universitäts‑, Hochschul‑ und Schulgelände, Bildungsgebäude (Geschoßfläche), Forschungseinrichtungen, Bibliotheken."
+};
+
+const map = L.map('map', {minZoom:11, maxZoom:16, zoomSnap:0.5, zoomControl:true,
+  maxBounds:[[47.12,11.10],[47.40,11.68]], maxBoundsViscosity:0.8});
+map.fitBounds([[47.205,11.27],[47.315,11.51]]);
+if(map.getZoom()<12) map.setView([47.262,11.39],12);
+
+/* Grundkarten. Hinweis: CARTO-Kacheln (Positron/Voyager) verlangen inzwischen einen API-Key,
+   daher hier Esri „Light Gray Canvas“ (gedämpft) und OSM entsättigt. */
+const esriAttr='Kacheln © <a href="https://www.esri.com">Esri</a>, HERE, Garmin, © OpenStreetMap-Mitwirkende, GIS User Community';
+map.createPane('refPane'); map.getPane('refPane').style.zIndex=405; map.getPane('refPane').style.pointerEvents='none';
+const gray = L.layerGroup([
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:esriAttr}),
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,pane:'refPane'})
+]);
+map.createPane('osmPane'); map.getPane('osmPane').style.zIndex=200; map.getPane('osmPane').classList.add('osm-pane-dim');
+const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{pane:'osmPane',maxZoom:19,
+  attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende'});
+map.createPane('satPane'); map.getPane('satPane').style.zIndex = 201; map.getPane('satPane').classList.add('sat-pane-dim');
+const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  pane:'satPane', maxZoom:19, attribution:'Bild © Esri, Maxar, Earthstar Geographics, GIS User Community'});
+const BASES={gray, osm, sat:esri};
+let base='gray'; gray.addTo(map);
+function setBase(k){
+  BASES[base].remove(); base=k; BASES[k].addTo(map);
+  map.getContainer().classList.toggle('sat', k==='sat');
+  document.querySelectorAll('#baseSeg button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.base===k));
+}
+
+/* Panes: Reihenfolge der Ebenen */
+[['zonePane',409],['heatPane',408],['areaPane',410],['bandPane',415],['linePane',420],['boundPane',430],['trafficPane',445],['labelPane',450],['stationPane',610],['pointPane',620]]
+  .forEach(([n,z])=>{map.createPane(n);map.getPane(n).style.zIndex=z;});
+['labelPane','boundPane','heatPane','trafficPane'].forEach(n=>map.getPane(n).style.pointerEvents='none');
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fmt = n => Math.round(n).toLocaleString('de-AT');
+
+/* ---- Glättung (Chaikin) für generalisierte Flächen ---- */
+function chaikin(ring, it=4){
+  let pts = ring.slice();
+  for(let k=0;k<it;k++){
+    const out=[];
+    for(let i=0;i<pts.length;i++){
+      const a=pts[i], b=pts[(i+1)%pts.length];
+      out.push([0.75*a[0]+0.25*b[0], 0.75*a[1]+0.25*b[1]]);
+      out.push([0.25*a[0]+0.75*b[0], 0.25*a[1]+0.75*b[1]]);
+    }
+    pts=out;
+  }
+  return pts;
+}
+
+/* ---- Grenzen ---- */
+const boundGroup = L.layerGroup().addTo(map);
+const districtGroup = L.layerGroup();
+const labelGroup = L.layerGroup().addTo(map);
+const stLabelGroup = L.layerGroup();
+const toLL = ring => ring.map(c=>[c[1],c[0]]);
+function polyCentroid(ring){
+  let a=0,x=0,y=0;
+  for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+    const f=ring[j][0]*ring[i][1]-ring[i][0]*ring[j][1];
+    a+=f; x+=(ring[j][0]+ring[i][0])*f; y+=(ring[j][1]+ring[i][1])*f;
+  }
+  a*=0.5; return [y/(6*a), x/(6*a)];
+}
+const GEM_LABEL_POS = {"Innsbruck":[47.2905,11.4235],"Völs":[47.2455,11.3215],"Götzens":[47.2265,11.3000],"Rum":[47.2930,11.4470]};
+const ST_NAMES = {"Innsbruck":"Innenstadt"};
+const ST_LABEL_POS = {"Hötting":[47.2775,11.3640],"Arzl":[47.2800,11.4300],"Mühlau":[47.2850,11.4120],"Igls":[47.2300,11.4130],"Vill":[47.2405,11.3930]};
+BOUNDARIES.features.forEach(f=>{
+  const rings = f.geometry.coordinates.map(p=>toLL(p[0]));
+  const n=f.properties.name;
+  if(f.properties.kind==='gemeinde'){
+    L.polygon(rings,{pane:'boundPane',interactive:false,fill:false,color:'#ffffff',weight:9,opacity:.55,lineJoin:'round'}).addTo(boundGroup);
+    L.polygon(rings,{pane:'boundPane',interactive:false,fill:false,color:'#53606d',weight:2.2,opacity:.62,lineJoin:'round',smoothFactor:1.5}).addTo(boundGroup);
+    L.marker(GEM_LABEL_POS[n]||EXTRA_LABELS[n]||polyCentroid(rings[0]),{pane:'labelPane',interactive:false,
+      icon:L.divIcon({className:'gem-label'+(n==='Innsbruck'?' big':(GEM_LABEL_POS[n]?'':' small')),html:`<span>${n.replace(' im Stubaital','')}</span>`,iconSize:[0,0]})}).addTo(labelGroup);
+  } else {
+    L.polygon(rings,{pane:'boundPane',interactive:false,fill:false,color:'#6a7682',weight:1.1,opacity:.7,dashArray:'4 5'}).addTo(districtGroup);
+    L.marker(ST_LABEL_POS[n]||polyCentroid(rings[0]),{pane:'labelPane',interactive:false,
+      icon:L.divIcon({className:'st-label',html:`<span>${ST_NAMES[n]||n}</span>`,iconSize:[0,0]})}).addTo(stLabelGroup);
+  }
+});
+
+/* ---- Info-Seitenleiste ---- */
+const info = document.getElementById('info');
+const introHTML = info.innerHTML;
+function backLink(){
+  return `<p style="margin-top:14px"><a href="#" id="backIntro" style="font-size:13px;color:var(--accent)">← Zurück zur Übersicht</a></p>`;
+}
+function wireBack(){
+  document.getElementById('backIntro').onclick = e=>{e.preventDefault();clearSel();info.innerHTML=introHTML;currentStation=null;currentEdge=null;};
+  if(window.matchMedia('(max-width:820px)').matches) info.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function showInfo(d){
+  const c=CATS[d.cat];
+  currentStation=null; currentEdge=null;
+  info.style.setProperty('--c', c.hex);
+  info.innerHTML = `<span class="tag">${c.label}</span>
+    <h3>${d.name}</h3>
+    <p class="lage">📍 ${d.lage}${d.ha?` · ${fmt(d.ha)} ha`:''}</p>
+    <p>${d.text}</p>
+    ${d.mix&&Object.keys(d.mix).length?mixHTML(d):''}
+    ${d.modell?`<div class="modell"><b>Im Modell</b>${d.modell}</div>`:''}
+    ${d.rings?`<p class="src" style="margin-top:10px">Fläche automatisch abgeleitet: ${SUBK.includes(d.cat)?`Innerhalb der Wohnflächen ist hier „${c.short}“ die stärkste der drei Bauformen`:`Hier ist „${c.label}“ die stärkste der fünf Dichten`} aus amtlicher Flächenwidmung, OSM‑Gebäuden, ‑Geschäften und ‑Landnutzung.</p>`:''}
+    ${backLink()}`;
+  wireBack();
+}
+
+/* Zusammensetzung einer abgeleiteten Fläche */
+function mixHTML(d){
+  const ks=Object.keys(d.mix).sort((a,b)=>d.mix[b]-d.mix[a]);
+  const bars=ks.map(k=>{const p=Math.round(d.mix[k]*100);
+    return `<div class="row" style="--c:${CATS[k].hex}"><span class="lbl">${CATS[k].short}</span><span class="bar"><i style="width:${Math.min(100,p)}%"></i></span><span class="val">${p}%</span></div>`;}).join('');
+  const g=d.geb||{}, p=d.poi||{};
+  const facts=[[g.haus,'Ein-/Zweifamilienhäuser'],[g.wohn,'Wohnbauten (Mehrfamilien)'],[g.hoch,'Gebäude ab 7 Geschoßen'],[g.betrieb,'Betriebs-/Bürogebäude'],
+    [p.shop,'Geschäfte'],[p.gastro,'Lokale'],[p.bildung,'Bildungseinrichtungen'],[p.betrieb,'Handwerk/Büros']].filter(f=>f[0]);
+  return `<div class="probe" style="width:auto;margin:4px 0 12px"><h4>Dichte der Kategorien in dieser Fläche</h4>${bars}</div>
+    ${facts.length?`<div class="kpi">${facts.slice(0,6).map(f=>`<div><b>${fmt(f[0])}</b><span>${f[1]}</span></div>`).join('')}</div>`:''}`;
+}
+
+/* ---- Flächen ---- */
+let selected=null;
+function baseStyle(cat){const h=CATS[cat].hex;
+  if(SUBK.includes(cat)) return {pane:'areaPane',color:'#2b2f36',weight:1,opacity:.5,dashArray:'4 4',fillColor:'#fff',fillOpacity:0,lineJoin:'round'};
+  return {pane:'areaPane',color:h,weight:1.6,opacity:.85,fillColor:h,fillOpacity:.35,lineJoin:'round'};}
+function hiStyle(cat){return SUBK.includes(cat)?{weight:2.4,opacity:.95,fillOpacity:.12}:{weight:3,opacity:1,fillOpacity:.6};}
+function clearSel(){ if(selected){selected.setStyle(selected._base);selected=null;} }
+const catLayers = {}; Object.keys(CATS).forEach(k=>catLayers[k]={areas:L.layerGroup(),points:L.layerGroup(),lines:L.layerGroup()});
+AREAS.concat(AREAS_W).forEach(a=>{
+  const lyr = L.polygon(a.rings ? a.rings : chaikin(a.coords, 4), baseStyle(a.cat));
+  lyr._base = baseStyle(a.cat);
+  lyr.bindTooltip(a.name,{sticky:true,direction:'top',opacity:.95});
+  lyr.on('mouseover',()=>{lyr.setStyle(hiStyle(a.cat));});
+  lyr.on('mouseout',()=>{ if(selected!==lyr) lyr.setStyle(lyr._base); });
+  lyr.on('click',e=>{ L.DomEvent.stopPropagation(e); if(roadClick(e.latlng)) return; clearSel(); selected=lyr; lyr.setStyle(hiStyle(a.cat)); showInfo(a); });
+  catLayers[a.cat].areas.addLayer(lyr);
+});
+
+/* ---- Barriere-Linien ---- */
+LINES.features.forEach(f=>{
+  const p=f.properties, d=BARRIER_INFO[p.id];
+  const parts = f.geometry.type==='MultiLineString'? f.geometry.coordinates : [f.geometry.coordinates];
+  const g = L.layerGroup();
+  parts.forEach(part=>{
+    const ll = part.map(c=>[c[1],c[0]]);
+    if(p.kind==='river'){
+      L.polyline(ll,{pane:'linePane',color:'#4d5e6e',weight:9,opacity:.5,lineCap:'round',lineJoin:'round'}).addTo(g);
+    } else if(p.kind==='motorway'){
+      L.polyline(ll,{pane:'linePane',color:'#3d4249',weight:5.5,opacity:.88,lineCap:'round',lineJoin:'round'}).addTo(g);
+      L.polyline(ll,{pane:'linePane',color:'#ffffff',weight:1.2,opacity:.9,dashArray:'5 4',interactive:false}).addTo(g);
+    } else {
+      L.polyline(ll,{pane:'linePane',color:'#3d4249',weight:3.4,opacity:.85}).addTo(g);
+      L.polyline(ll,{pane:'linePane',color:'#ffffff',weight:1.8,opacity:.95,dashArray:'6 6',interactive:false}).addTo(g);
+    }
+  });
+  g.eachLayer(l=>{
+    if(l.options.interactive===false) return;
+    l.bindTooltip(d.name,{sticky:true,opacity:.95});
+    l.on('click',e=>{L.DomEvent.stopPropagation(e);clearSel();showInfo(d);});
+  });
+  catLayers.barriere.lines.addLayer(g);
+});
+
+/* ---- Punkte ---- */
+POINTS.forEach(p=>(SUBK.includes(p.cat)?['wohnen',p.cat]:[p.cat]).forEach(pc=>{
+  const h=CATS[pc].hex;
+  const m = L.circleMarker([p.lat,p.lon],{pane:'pointPane',radius:7,color:'#fff',weight:2.2,fillColor:h,fillOpacity:1});
+  m.bindTooltip(p.name,{direction:'top',offset:[0,-6],className:'pt-tip',opacity:.95});
+  m.on('mouseover',()=>m.setStyle({radius:9.5}));
+  m.on('mouseout',()=>m.setStyle({radius:7}));
+  m.on('click',e=>{L.DomEvent.stopPropagation(e);clearSel();showInfo(Object.assign({},p,{cat:pc}));});
+  catLayers[pc].points.addLayer(m);
+}));
+
+/* ================= HEATMAP ================= */
+const HK = Object.keys(HEAT.cats);
+const HV = {};
+HK.forEach(k=>{ const s=atob(HEAT.cats[k]); const a=new Uint8Array(s.length); for(let i=0;i<s.length;i++) a[i]=s.charCodeAt(i); HV[k]=a; });
+const [[HS,HW_],[HN,HE]] = HEAT.bounds;
+const hexRgb = h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+const heatCanvas=document.createElement('canvas'); heatCanvas.width=HEAT.w; heatCanvas.height=HEAT.h;
+let heatOverlay=null, heatMode='all', heatCat='konsum', heatOpacity=.9;
+
+function renderHeat(){
+  const ctx=heatCanvas.getContext('2d'), img=ctx.createImageData(HEAT.w,HEAT.h), d=img.data, n=HEAT.w*HEAT.h;
+  if(view==='wohn'||heatMode==='all'){
+    const ks=(view==='wohn'?SUBK:VIEW_K.heat).filter(k=>catState[k]&&HV[k]); const cols=ks.map(k=>hexRgb(CATS[k].hex)); const arr=ks.map(k=>HV[k]);
+    for(let i=0;i<n;i++){
+      let sw=0,r=0,g=0,b=0,mx=0;
+      for(let j=0;j<ks.length;j++){
+        const v=arr[j][i]/255; if(v<=0) continue;
+        const w=v*v*v;                          // stärkere Kategorie dominiert, Übergänge bleiben sichtbar
+        r+=w*cols[j][0]; g+=w*cols[j][1]; b+=w*cols[j][2]; sw+=w; if(v>mx) mx=v;
+      }
+      const o=i*4;
+      if(sw>0){ d[o]=r/sw; d[o+1]=g/sw; d[o+2]=b/sw; d[o+3]=Math.min(1,Math.pow(mx,0.5)*1.2)*245; }
+    }
+  } else {
+    const [cr,cg,cb]=hexRgb(CATS[heatCat].hex), a=HV[heatCat];
+    // Farbverlauf: helle Tönung -> Kategorienfarbe -> abgedunkelt
+    for(let i=0;i<n;i++){
+      const v=a[i]/255; if(v<=0) continue; const o=i*4;
+      let r,g,b;
+      if(v<0.5){ const t=v/0.5; r=255+(cr-255)*t; g=255+(cg-255)*t; b=255+(cb-255)*t; r=r*0.85+cr*0.15; g=g*0.85+cg*0.15; b=b*0.85+cb*0.15; }
+      else { const t=(v-0.5)/0.5*0.55; r=cr*(1-t); g=cg*(1-t); b=cb*(1-t); }
+      d[o]=r; d[o+1]=g; d[o+2]=b; d[o+3]=Math.min(1,0.25+Math.pow(v,0.6))*235;
+    }
+  }
+  ctx.putImageData(img,0,0);
+  const url=heatCanvas.toDataURL();
+  if(!heatOverlay) heatOverlay=L.imageOverlay(url,[[HS,HW_],[HN,HE]],{pane:'heatPane',opacity:heatOpacity,interactive:false,className:'heat-img'});
+  else heatOverlay.setUrl(url);
+  heatLegend();
+}
+function heatLegend(){
+  if(view==='wohn'){
+    document.getElementById('wohnLegend').innerHTML=`<div class="mix">${SUBK.filter(k=>catState[k]).map(k=>`<span style="--c:${CATS[k].hex}"><i></i>${CATS[k].short}</span>`).join('')}</div>
+      <div><b>Farbton</b> = Mischung der Bauformen (Mischfarben = gemischte Bebauung) · <b>Deckkraft</b> = Dichte der stärksten Bauform.</div>
+      <div class="note">Je Bauform relativ zur stärksten Ausprägung (= 100 %). Fahre über die Karte für die Anteile.</div>`;
+    return;
+  }
+  const el=document.getElementById('heatLegend');
+  if(heatMode==='all'){
+    el.innerHTML=`<div class="mix">${VIEW_K.heat.filter(k=>catState[k]).map(k=>`<span style="--c:${CATS[k].hex}"><i></i>${CATS[k].short}</span>`).join('')}</div>
+      <div><b>Farbton</b> = Mischung der Kategorien, gewichtet nach Stärke · <b>Deckkraft</b> = Stärke der stärksten Kategorie. Mischfarben zeigen Übergänge und Nutzungsmischung.</div>
+      <div class="note">Werte je Kategorie relativ zur stärksten Ausprägung im Kartenausschnitt (= 100 %). Fahre über die Karte für die genauen Anteile.</div>`;
+  } else {
+    const h=CATS[heatCat].hex;
+    el.innerHTML=`<div class="ramp" style="background:linear-gradient(90deg,rgba(255,255,255,.3),color-mix(in srgb,${h} 30%,#fff),${h},color-mix(in srgb,${h} 45%,#000))"></div>
+      <div class="ends"><span>schwach</span><span>mittel</span><span>sehr stark</span></div>
+      <div class="note"><b>Gemessen:</b> ${HEAT_DEF[heatCat]}</div>`;
+  }
+}
+/* Werte-Abfrage an der Mausposition */
+function heatAt(ll){
+  const c=Math.floor((ll.lng-HW_)/(HE-HW_)*HEAT.w), r=Math.floor((HN-ll.lat)/(HN-HS)*HEAT.h);
+  if(c<0||r<0||c>=HEAT.w||r>=HEAT.h) return null;
+  const o={}; HK.forEach(k=>o[k]=HV[k][r*HEAT.w+c]/255); return o;
+}
+const Probe = L.Control.extend({options:{position:'topright'},
+  onAdd(){ const d=L.DomUtil.create('div','mapbox probe'); d.innerHTML='<h4>An dieser Stelle</h4><div class="hint">Maus über die Karte bewegen (oder tippen).</div>';
+    L.DomEvent.disableClickPropagation(d); this._d=d; return d; },
+  set(v){
+    if(!v){this._d.innerHTML='<h4>An dieser Stelle</h4><div class="hint">außerhalb des Rasters</div>';return;}
+    const ks=view==='wohn'?SUBK:VIEW_K.heat.concat(heatMode==='one'&&!VIEW_K.heat.includes(heatCat)?[heatCat]:[]);
+    this._d.innerHTML='<h4>An dieser Stelle</h4>'+ks.map(k=>{
+      const p=Math.round(v[k]*100);
+      return `<div class="row" style="--c:${CATS[k].hex};${view==='heat'&&heatMode==='one'&&k!==heatCat?'opacity:.45':''}"><span class="lbl">${CATS[k].short}</span><span class="bar"><i style="width:${p}%"></i></span><span class="val">${p}%</span></div>`;
+    }).join('');
+  }});
+const probe=new Probe();
+function onProbe(e){ if(view==='heat'||view==='wohn') probe.set(heatAt(e.latlng)); }
+map.on('mousemove',onProbe); map.on('click',onProbe);
+
+/* ================= VERKEHR ================= */
+const TCOL=[[0,[255,209,102]],[800,[244,162,89]],[1600,[228,87,46]],[2600,[155,29,32]]];
+function volColor(v){
+  for(let i=1;i<TCOL.length;i++){ if(v<=TCOL[i][0]){ const [a,ca]=TCOL[i-1],[b,cb]=TCOL[i], t=(v-a)/(b-a);
+    return `rgb(${ca.map((x,j)=>Math.round(x+(cb[j]-x)*t)).join(',')})`; } }
+  return 'rgb(155,29,32)';
+}
+let tHour = 7, tDay='werktag', tPlay=!reduceMotion, currentStation=null, currentEdge=null;
+function volAt(dir, h){ // stündlich, linear interpoliert
+  const a=dir[tDay], i=Math.floor(h)%24, j=(i+1)%24, f=h-Math.floor(h); return a[i]*(1-f)+a[j]*f;
+}
+const trafficGroup=L.layerGroup();
+const stationGroup=L.layerGroup();
+TRAFFIC.forEach(s=>{
+  const m=L.marker(s.pos,{pane:'stationPane',icon:L.divIcon({className:'station-ico'+(s.est?' est':''),html:'<span></span>',iconSize:[0,0]}),keyboard:true,title:s.name});
+  m.bindTooltip(`◆ ${s.name}`,{direction:'top',offset:[0,-8],className:'pt-tip',opacity:.95});
+  m.on('click',e=>{L.DomEvent.stopPropagation(e);clearSel();showStation(s);});
+  stationGroup.addLayer(m);
+});
+
+/* ---- Straßennetz aus dem Verkehrsmodell ---- */
+const NETE = NET.edges.map((e,i)=>{
+  const ll=[]; let a=0,b=0;
+  for(let j=0;j<e.g.length;j+=2){ a+=e.g[j]; b+=e.g[j+1]; ll.push([a/1e5,b/1e5]); }
+  let s=90,n=-90,w=180,o=-180; ll.forEach(p=>{s=Math.min(s,p[0]);n=Math.max(n,p[0]);w=Math.min(w,p[1]);o=Math.max(o,p[1]);});
+  return {i,ll,k:e.k,n:e.n,r:e.r,f:e.f,b:e.b,bb:[s,w,n,o]};
+});
+const KLASSE=['Wohnstraße (Begegnungszone)','Wohnstraße','Gemeindestraße','Landes-/Gemeindestraße','Landesstraße','Bundesstraße','Schnellstraße / Auffahrt','Autobahn'];
+const VF=new Float32Array(NETE.length), VB=new Float32Array(NETE.length);
+let volKey='';
+function hourVals(comp, h, day){ // Kfz/h aus den vier Modellkomponenten
+  if(!comp) return 0; const P=NET.prof[day||tDay], i=Math.floor(h)%24, j=(i+1)%24, f=h-Math.floor(h);
+  let v=0; for(let c=0;c<4;c++) v+=comp[c]*(P[c][i]*(1-f)+P[c][j]*f); return v;
+}
+function updateVols(){
+  const key=tDay+Math.round(tHour*10); if(key===volKey) return false; volKey=key;
+  for(let i=0;i<NETE.length;i++){ VF[i]=hourVals(NETE[i].f,tHour); VB[i]=hourVals(NETE[i].b,tHour); }
+  return true;
+}
+
+/* Partikel-Animation auf Canvas */
+function vdc(i){let n=0,d=1;i++;while(i){d*=2;n+=(i&1)/d;i>>=1;}return n;}   // gleichmäßig verteilte Startpositionen
+const VDC=[...Array(600)].map((_,i)=>vdc(i));
+const KPX=24000;   // Pixel·(Kfz/h) je Strich: 2400 Kfz/h -> alle 10 px ein Strich
+const SPEED=[22,26,30,34,38,44,55,64];
+const FlowLayer = L.Layer.extend({
+  onAdd(m){
+    this._base=L.DomUtil.create('canvas','traffic-canvas'); this._c=L.DomUtil.create('canvas','traffic-canvas');
+    [this._base,this._c].forEach(c=>{c.style.position='absolute'; m.getPane('trafficPane').appendChild(c);});
+    m.on('moveend zoomend resize',this._reset,this); m.on('zoomstart',this._hide,this);
+    this._reset(); this._last=performance.now(); this._t=0; this._running=true;
+    const loop=now=>{ if(!this._running) return; const dt=Math.min(.1,(now-this._last)/1000); this._last=now;
+      if(tPlay){ tHour=(tHour+dt/2.2)%24; timeCtl.sync(); }
+      if(updateVols()) this._drawBase();
+      if(!reduceMotion) this._t+=dt; this._draw(); this._raf=requestAnimationFrame(loop); };
+    this._raf=requestAnimationFrame(loop);
+  },
+  onRemove(m){ this._running=false; cancelAnimationFrame(this._raf); this._c.remove(); this._base.remove(); m.off('moveend zoomend resize',this._reset,this); m.off('zoomstart',this._hide,this); },
+  _hide(){ this._c.style.visibility='hidden'; this._base.style.visibility='hidden'; },
+  _reset(){
+    const m=this._map, size=m.getSize(), dpr=window.devicePixelRatio||1, z=m.getZoom();
+    [this._base,this._c].forEach(c=>{ L.DomUtil.setPosition(c, m.containerPointToLayerPoint([0,0]));
+      c.width=size.x*dpr; c.height=size.y*dpr; c.style.width=size.x+'px'; c.style.height=size.y+'px'; c.style.visibility='visible'; });
+    this._dpr=dpr; this._size=size;
+    const bb=m.getBounds().pad(0.05), minK = z<12 ? 4 : z<13 ? 2 : 0;
+    this._paths=[];
+    for(const E of NETE){
+      if(E.k<minK) continue;
+      if(E.bb[2]<bb.getSouth()||E.bb[0]>bb.getNorth()||E.bb[3]<bb.getWest()||E.bb[1]>bb.getEast()) continue;
+      const pts=E.ll.map(ll=>m.latLngToContainerPoint(ll)); const cum=[0];
+      for(let i=1;i<pts.length;i++) cum.push(cum[i-1]+pts[i].distanceTo(pts[i-1]));
+      const len=cum[cum.length-1]; if(len<1.5) continue;
+      this._paths.push({E,pts,cum,len,speed:SPEED[E.k]});
+    }
+    volKey=''; updateVols(); this._drawBase();
+  },
+  _drawBase(){
+    const ctx=this._base.getContext('2d'), dpr=this._dpr, z=this._map.getZoom();
+    ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,this._size.x,this._size.y);
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    const zf=Math.max(.6,Math.min(1.6,(z-10.5)/3));
+    const sorted=this._paths.slice().sort((a,b)=>a.E.k-b.E.k);
+    for(const P of sorted){
+      const i=P.E.i, v=(P.E.b? (VF[i]+VB[i])/2 : VF[i]);
+      ctx.strokeStyle=volColor(v); ctx.globalAlpha=Math.min(.85, .28+v/900);
+      ctx.lineWidth=(1+P.E.k*0.45+Math.sqrt(v)/14)*zf;
+      ctx.beginPath(); P.pts.forEach((q,j)=>j?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y)); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  },
+  _pos(P,sd){ // Punkt + Richtung bei Bogenlänge sd
+    const cum=P.cum; let lo=0,hi=cum.length-1;
+    while(hi-lo>1){const mid=(lo+hi)>>1; if(cum[mid]<=sd) lo=mid; else hi=mid;}
+    const a=P.pts[lo], b=P.pts[hi], L_=cum[hi]-cum[lo]||1, f=(sd-cum[lo])/L_;
+    return [a.x+(b.x-a.x)*f, a.y+(b.y-a.y)*f, (b.x-a.x)/L_, (b.y-a.y)/L_];
+  },
+  _draw(){
+    const ctx=this._c.getContext('2d'), dpr=this._dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,this._size.x,this._size.y);
+    ctx.lineCap='round'; ctx.lineWidth=2.2; ctx.strokeStyle='rgba(255,255,255,.95)';
+    const zf=Math.max(.7,Math.min(1.4,(this._map.getZoom()-11)/3));
+    ctx.beginPath();
+    for(const P of this._paths){
+      const two=!!P.E.b;
+      for(let di=0;di<(two?2:1);di++){
+        const v=di?VB[P.E.i]:VF[P.E.i]; if(v<=1) continue;
+        const n=Math.min(VDC.length, Math.floor(P.len*v/KPX + VDC[(P.len*7|0)%VDC.length]));
+        if(!n) continue;
+        const off=(two?2.2*zf:0)*(di===0?1:-1), sgn=di===0?1:-1, shift=this._t*P.speed/P.len;
+        for(let i=0;i<n;i++){
+          let u=(VDC[i]+sgn*shift)%1; if(u<0) u+=1;
+          const [x,y,tx,ty]=this._pos(P,u*P.len);
+          const nx=-ty*off, ny=tx*off, ex=tx*sgn*4*zf, ey=ty*sgn*4*zf;
+          ctx.moveTo(x+nx-ex,y+ny-ey); ctx.lineTo(x+nx+ex*0.2,y+ny+ey*0.2);
+        }
+      }
+    }
+    ctx.stroke();
+  },
+  hit(cp){ // nächster Straßenabschnitt zum Klickpunkt (Pixel)
+    let best=null, bd=8;
+    for(const P of this._paths){
+      for(let i=1;i<P.pts.length;i++){
+        const a=P.pts[i-1], b=P.pts[i], dx=b.x-a.x, dy=b.y-a.y, L2=dx*dx+dy*dy||1;
+        const t=Math.max(0,Math.min(1,((cp.x-a.x)*dx+(cp.y-a.y)*dy)/L2));
+        const d=Math.hypot(a.x+t*dx-cp.x,a.y+t*dy-cp.y);
+        if(d<bd){bd=d;best=P.E;}
+      }
+    }
+    return best;
+  }
+});
+const flowLayer=new FlowLayer();
+
+/* Zeitsteuerung */
+const TimeCtl = L.Control.extend({options:{position:'bottomleft'},
+  onAdd(){
+    const d=L.DomUtil.create('div','mapbox timebox');
+    d.innerHTML=`<div class="top">
+        <button class="play" type="button" aria-label="Tagesablauf abspielen"></button>
+        <span class="clock" aria-live="off">07:00</span>
+        <div class="seg" role="group" aria-label="Tagestyp"><button type="button" data-d="werktag" aria-pressed="true">Werktag</button><button type="button" data-d="wochenende">Wochenende</button></div>
+      </div>
+      <input type="range" min="0" max="23.75" step="0.25" value="7" aria-label="Uhrzeit">
+      <div class="ramp"></div><div class="ends"><span>0</span><span>800</span><span>1.600</span><span>2.600+ Kfz/h je Richtung</span></div>
+      <div class="cap">Alle Straßen: Verkehrsmodell, an ${NET.meta.n} Zählwerten angepasst. Farbe und Strichdichte ∝ Kfz pro Stunde. Straße anklicken für Details · ◆ Zählstelle (gemessen).</div>`;
+    L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
+    this._d=d; this._btn=d.querySelector('.play'); this._clk=d.querySelector('.clock'); this._rng=d.querySelector('input');
+    this._btn.onclick=()=>{tPlay=!tPlay;this.sync();};
+    this._rng.oninput=()=>{tPlay=false;tHour=+this._rng.value;this.sync();};
+    d.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{tDay=b.dataset.d;d.querySelectorAll('[data-d]').forEach(x=>x.setAttribute('aria-pressed',x===b));this.sync();volKey='';if(currentStation) showStation(currentStation); else if(currentEdge) showEdge(currentEdge);});
+    this.sync(); return d;
+  },
+  sync(){
+    if(!this._d) return;
+    const h=Math.floor(tHour), m=Math.floor((tHour-h)*4)*15;
+    this._clk.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+    if(document.activeElement!==this._rng) this._rng.value=tHour;
+    this._btn.innerHTML=tPlay?'<svg width="12" height="12" viewBox="0 0 12 12"><rect x="1.5" y="1" width="3" height="10" fill="#fff"/><rect x="7.5" y="1" width="3" height="10" fill="#fff"/></svg>':'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 1 L11 6 L2 11 Z" fill="#fff"/></svg>';
+    this._btn.setAttribute('aria-label',tPlay?'Anhalten':'Tagesablauf abspielen');
+    if(currentStation||currentEdge) markHour();
+  }});
+const timeCtl=new TimeCtl();
+
+/* Zählstellen-Info mit Tagesgang-Diagramm */
+const ST_NOTE={
+  '8851':'Hauptachse zwischen Völs und dem Innsbrucker Westen: morgens stadteinwärts, abends stadtauswärts – typischer Pendlerrhythmus aus dem Umland.',
+  '8852':'Einzige Landesstraße vom Mittelgebirge (Götzens, Axams, Birgitz) in die Stadt. Die suburbanen Wohninseln erzeugen die Spitzen.',
+  '8246':'Verbindung Rum – Innsbruck nördlich der Autobahn. Rum verbindet Wohnen mit großen Gewerbe‑ und Einkaufsflächen.',
+  '8885':'Zufahrt von der A12 (Anschluss Innsbruck‑Ost) zum DEZ und nach Pradl/Reichenau – die meistbefahrene Landeszählstelle der Stadt.',
+  '8883':'Westeinfahrt über die Egger‑Lienz‑Straße: verbindet A12/A13 mit dem Zentrum. Morgens deutlich mehr Verkehr stadteinwärts.',
+  '8881':'Kranebitter Allee: verbindet die Technik, Kranebitten und den Flughafen mit der Stadt und dem Anschluss Innsbruck‑West.',
+  '8157':'Haller Straße: Achse vom Osten ins Zentrum, entlang der Gewerbe‑ und Wohnbauten in der Reichenau.',
+  '8155':'B 171 bei Thaur: verbindet Hall, Thaur und Rum mit Innsbruck und den Einkaufsflächen im Osten.'
+};
+function chartSVG(s){
+  const W=320,H=120,pl=34,pr=6,pt=8,pb=20, iw=W-pl-pr, ih=H-pt-pb;
+  const ds=s.dirs.slice(0,2); const mx=Math.max(50,...ds.flatMap(d=>d[tDay]));
+  const step=mx>2000?1000:mx>800?400:mx>300?100:50, top=Math.ceil(mx/step)*step;
+  const X=h=>pl+h/23*iw, Y=v=>pt+ih-v/top*ih;
+  const cols=['#2d4a63','#e4572e'];
+  let g='';
+  for(let v=0;v<=top;v+=step) g+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e7e5e0"/><text x="${pl-4}" y="${Y(v)+3.5}" font-size="9.5" text-anchor="end" fill="#7a8088">${fmt(v)}</text>`;
+  [0,6,12,18,23].forEach(h=>g+=`<text x="${X(h)}" y="${H-5}" font-size="9.5" text-anchor="middle" fill="#7a8088">${h} h</text>`);
+  ds.forEach((d,i)=>{ g+=`<polyline fill="none" stroke="${cols[i]}" stroke-width="2.2" stroke-linejoin="round" points="${d[tDay].map((v,h)=>X(h).toFixed(1)+','+Y(v).toFixed(1)).join(' ')}"/>`; });
+  g+=`<line id="hourMark" x1="${X(tHour)}" x2="${X(tHour)}" y1="${pt}" y2="${pt+ih}" stroke="#22262b" stroke-width="1" stroke-dasharray="3 3"/>`;
+  return {svg:`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tagesgang der Verkehrsmenge">${g}</svg>`,
+    leg:ds.map((d,i)=>`<span><i style="background:${cols[i]}"></i>Richtung ${d.label}</span>`).join(''), X};
+}
+let chartX=null;
+function markHour(){ const l=document.getElementById('hourMark'); if(l&&chartX){ const x=chartX(Math.min(23,tHour)); l.setAttribute('x1',x); l.setAttribute('x2',x);} }
+function showStation(s){
+  currentStation=s; currentEdge=null;
+  const cmp=NET.stations.filter(x=>x.id===s.id);
+  info.style.setProperty('--c','#2a3642');
+  const ch=chartSVG(s); chartX=ch.X;
+  const peak=s.dirs.slice(0,2).map(d=>{const a=d.werktag; const h=a.indexOf(Math.max(...a)); return `${d.label}: ${h}–${h+1} Uhr`;}).join(' · ');
+  info.innerHTML=`<span class="tag">Verkehrszählstelle${s.asfinag?' · ASFINAG':''}</span>
+    <h3>${s.name}</h3>
+    <p class="lage">🛣️ ${s.road}</p>
+    <div class="kpi"><div><b>${fmt(s.jdtv)}</b><span>Kfz pro Tag (JDTV ${s.year})</span></div>
+      <div><b>${(s.lkw/s.jdtv*100).toLocaleString('de-AT',{maximumFractionDigits:1})} %</b><span>Lkw‑ähnlicher Verkehr</span></div></div>
+    <div style="font-size:12px;color:var(--muted)">Tagesgang ${tDay==='werktag'?'Werktag (Mo–Fr)':'Wochenende'}, Kfz pro Stunde${s.est?' – <b>geschätzt</b> aus dem mittleren Tagesgang der Landeszählstellen':' – gemessen, Mittel September 2026'}</div>
+    ${ch.svg}<div class="chart-leg">${ch.leg}</div>
+    ${s.est?'':`<p style="font-size:13.5px">Spitzenstunde (Werktag): ${peak}</p>`}
+    ${cmp.length?`<p style="font-size:13px;color:var(--muted)">Reines Verkehrsmodell (vor Anpassung): ${cmp.map(x=>`${s.dirs[x.dir]?.label||'Richtung '+(x.dir+1)}: ${fmt(x.roh)} statt ${fmt(x.mess)} Kfz/Tag`).join(' · ')}. Die Karte gleicht das Modell an diese Messung an.</p>`:''}
+    ${ST_NOTE[s.id]?`<div class="modell"><b>Im Modell</b>${ST_NOTE[s.id]}</div>`:`<div class="modell"><b>Im Modell</b>Pendelverkehr verbindet die funktional getrennten Inseln. Die Spitzen am Morgen und am späten Nachmittag zeigen, wie stark Wohnen, Arbeiten und Versorgung räumlich getrennt sind.</div>`}
+    <p class="src" style="margin-top:10px">Quelle: ${s.asfinag?'ASFINAG, veröffentlicht in den Jahreswerten des Landes Tirol (Abt. Mobilitätsplanung)':'Land Tirol, Abt. Mobilitätsplanung – automatische Verkehrszählstelle '+s.id}. Lage der Zählstelle und Zuordnung zum Straßenabschnitt genähert.</p>
+    ${backLink()}`;
+  wireBack();
+}
+
+/* Straßenabschnitt aus dem Modell */
+const COMPN=['Morgendlicher Arbeitsweg','Heimweg','Erledigungen/Freizeit','Durchgangsverkehr'];
+function showEdge(E){
+  currentEdge=E; currentStation=null;
+  info.style.setProperty('--c','#9b1d20');
+  const day=c=>c?c.reduce((a,b)=>a+b,0):0;
+  const hrs=(c,d)=>[...Array(24)].map((_,h)=>hourVals(c,h,d));
+  const dirs=[{label:E.b?'Richtung A':'Fahrtrichtung',werktag:hrs(E.f,'werktag'),wochenende:hrs(E.f,'wochenende')}];
+  if(E.b) dirs.push({label:'Richtung B',werktag:hrs(E.b,'werktag'),wochenende:hrs(E.b,'wochenende')});
+  const ch=chartSVG({dirs}); chartX=ch.X;
+  const tot=day(E.f)+day(E.b), comp=[0,1,2,3].map(i=>(E.f?E.f[i]:0)+(E.b?E.b[i]:0));
+  info.innerHTML=`<span class="tag">Straße · Modellwert</span>
+    <h3>${E.n||'Straße ohne Namen'}</h3>
+    <p class="lage">🛣️ ${KLASSE[E.k]}${E.r&&E.r!==E.n?' · '+E.r:''}${E.b?'':' · eine Fahrtrichtung (Einbahn oder getrennte Fahrbahn)'}</p>
+    <div class="kpi"><div><b>${fmt(tot)}</b><span>Kfz pro Tag (Modell, beide Richtungen)</span></div>
+      <div><b>${fmt((E.f?hourVals(E.f,tHour):0)+(E.b?hourVals(E.b,tHour):0))}</b><span>Kfz pro Stunde um ${String(Math.floor(tHour)).padStart(2,'0')} Uhr</span></div></div>
+    <div style="font-size:12px;color:var(--muted)">Tagesgang ${tDay==='werktag'?'Werktag':'Wochenende'}, Kfz pro Stunde (Modell)</div>
+    ${ch.svg}<div class="chart-leg">${ch.leg}</div>
+    <div class="probe" style="width:auto;margin:6px 0 12px"><h4>Zusammensetzung (Modell)</h4>${comp.map((v,i)=>{const p=tot?Math.round(v/tot*100):0;
+      return `<div class="row" style="--c:${['#2d4a63','#e4572e','#7a8a6a','#8a8f96'][i]}"><span class="lbl">${COMPN[i]}</span><span class="bar"><i style="width:${p}%"></i></span><span class="val">${p}%</span></div>`;}).join('')}</div>
+    <p class="src">Verkehrsmodell: Fahrten zwischen Wohnungen, Arbeitsplätzen und Geschäften (aus OSM‑Gebäuden) auf kürzesten Wegen, kalibriert an ${NET.meta.n} Zählwerten des Landes Tirol und der ASFINAG und in der Nähe von Zählstellen an die Messung angeglichen. Abseits der Zählstellen ist das eine <b>Schätzung</b> – Größenordnung und Muster sind aussagekräftig, Einzelwerte nicht.</p>
+    ${backLink()}`;
+  wireBack();
+}
+function roadClick(latlng){
+  if(!flowLayer._map) return false;
+  const E=flowLayer.hit(map.latLngToContainerPoint(latlng));
+  if(E){ clearSel(); showEdge(E); return true; }
+  return false;
+}
+map.on('click',e=>{ roadClick(e.latlng); });
+
+/* ---- Amtliche Flächenwidmung (Land Tirol) ---- */
+const ZK={gewerbe:['Gewerbe- und Industriegebiet','#6a3fa0'],betrieb:['Sonderfläche Betrieb/Lager','#9b7fc7'],handel:['Einkaufszentrum / Handelsbetrieb','#e8892b'],
+  ekz:['Raumordnung: EKZ-Kernzone/Standortraum','#c0571b'],kern:['Kerngebiet','#b0472f'],misch:['Allgemeines Mischgebiet','#c99a6b'],wohnmisch:['Gemischtes Wohngebiet','#8fae8c'],
+  wohn:['Wohngebiet','#bcd8b0'],gefwohn:['Vorbehalt geförderter Wohnbau','#d1453b'],dorf:['Landwirtschaftliches Mischgebiet','#d8cf9a'],
+  bildung:['Sonderfläche Bildung','#2f72c4'],freizeit:['Sonderfläche Grün/Sport/Freizeit','#3fae8c'],gast:['Sonderfläche Beherbergung/Gastronomie','#f2b880'],sonder:['Sonstige Sonder-/Vorbehaltsfläche','#b9bcc0']};
+const zoneRenderer=L.canvas({pane:'zonePane',padding:.3});
+const zoneLayer=L.geoJSON(ZONING,{renderer:zoneRenderer,pane:'zonePane',
+  style:f=>{const c=(ZK[f.properties.kat]||ZK.sonder)[1], ekz=f.properties.kat==='ekz';
+    return {color:c,weight:ekz?2:.6,opacity:ekz?1:.9,fillColor:c,fillOpacity:ekz?0:.5,dashArray:ekz?'6 4':null};},
+  onEachFeature:(f,l)=>{l.on('click',e=>{L.DomEvent.stopPropagation(e);clearSel();showZone(f.properties);});}});
+function showZone(p){
+  currentStation=null; currentEdge=null;
+  const k=ZK[p.kat]||ZK.sonder; info.style.setProperty('--c',k[1]);
+  info.innerHTML=`<span class="tag">Flächenwidmung</span><h3>${k[0]}</h3>
+    <p class="lage">📍 ${p.gname||''}</p>
+    <p><b>Widmung laut Plan:</b> ${p.w||'–'}</p>${p.f?`<p><b>Festlegung:</b> ${p.f}</p>`:''}
+    <div class="modell"><b>Im Modell</b>Die Widmung legt fest, was eine Gemeinde wo erlaubt. Getrennte Gewerbe-, Handels- und Wohngebiete sind das rechtliche Gerüst der fragmentierten Stadt.</div>
+    <p class="src" style="margin-top:10px">Quelle: Land Tirol – tiris, Flächenwidmung (CC BY 4.0). Nicht rechtsverbindlich; verbindlich ist der Plan der Gemeinde.</p>${backLink()}`;
+  wireBack();
+}
+function zoneLegend(){
+  const used=new Set(ZONING.features.map(f=>f.properties.kat));
+  document.getElementById('zoneLegend').innerHTML='<div class="mix">'+Object.entries(ZK).filter(([k])=>used.has(k)).map(([k,v])=>`<span style="--c:${v[1]}"><i></i>${v[0]}</span>`).join('')+'</div><div class="note">Amtliche Flächenwidmung, Land Tirol (tiris, CC BY 4.0).</div>';
+}
+
+/* ---- Steuerung ---- */
+let view='map';
+const catState={}; Object.keys(CATS).forEach(k=>catState[k]=true);
+function refresh(){
+  Object.keys(CATS).forEach(k=>{
+    const on=catState[k]&&(VIEW_K[view]||[]).concat(view==='heat'?['barriere']:[]).includes(k), L_=catLayers[k], mapView=view!=='heat';
+    (on&&mapView)? L_.areas.addTo(map) : L_.areas.remove();
+    (on&&mapView)? L_.points.addTo(map) : L_.points.remove();
+    on? L_.lines.addTo(map) : L_.lines.remove();
+  });
+  if(view==='heat'||view==='wohn'){ renderHeat(); heatOverlay.addTo(map); probe.addTo(map); }
+  else { heatOverlay&&heatOverlay.remove(); probe.remove(); }
+  document.getElementById('heatOpts').classList.toggle('hidden', view!=='heat');
+  document.getElementById('wohnNote').classList.toggle('hidden', view!=='wohn');
+  document.querySelectorAll('#cats .cat').forEach(el=>el.classList.toggle('hidden',!VIEW_K[view==='heat'?'map':view].includes(el.dataset.k)));
+  document.getElementById('app').classList.toggle('heat-mode', view==='heat');
+}
+const catsEl=document.getElementById('cats');
+Object.entries(CATS).forEach(([k,c])=>{
+  const nA=AREAS.concat(AREAS_W).filter(a=>a.cat===k).length, nP=POINTS.filter(p=>p.cat===k||(k==='wohnen'&&SUBK.includes(p.cat))).length;
+  const lab=document.createElement('label'); lab.className='cat'; lab.dataset.k=k; lab.style.setProperty('--c',c.hex);
+  lab.innerHTML=`<input type="checkbox" checked data-cat="${k}"><span class="sw-box"></span><span>${c.label}</span><span class="cnt" title="Flächen · Punkte">${nA} · ${nP}</span>`;
+  lab.querySelector('input').addEventListener('change',e=>{catState[k]=e.target.checked;refresh();});
+  catsEl.appendChild(lab);
+});
+const sel=document.getElementById('heatCat');
+VIEW_K.heat.concat(SUBK).forEach(k=>{if(!HV[k])return;const o=document.createElement('option');o.value=k;o.textContent=CATS[k].label;sel.appendChild(o);});
+sel.addEventListener('change',()=>{heatCat=sel.value;renderHeat();});
+document.querySelectorAll('#heatSeg button').forEach(b=>b.addEventListener('click',()=>{
+  heatMode=b.dataset.hm; document.querySelectorAll('#heatSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  document.getElementById('heatCatField').classList.toggle('hidden',heatMode!=='one'); renderHeat();
+}));
+document.getElementById('heatOp').addEventListener('input',e=>{heatOpacity=e.target.value/100; heatOverlay&&heatOverlay.setOpacity(heatOpacity);});
+document.querySelectorAll('#viewSeg button').forEach(b=>b.addEventListener('click',()=>{
+  view=b.dataset.view;
+  document.querySelectorAll('#viewSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  refresh();
+}));
+document.getElementById('tTraffic').addEventListener('change',e=>{
+  if(e.target.checked){ trafficGroup.addTo(map); stationGroup.addTo(map); flowLayer.addTo(map); timeCtl.addTo(map); }
+  else { trafficGroup.remove(); stationGroup.remove(); flowLayer.remove(); timeCtl.remove(); }
+});
+document.getElementById('tZoning').addEventListener('change',e=>{
+  const on=e.target.checked; on?zoneLayer.addTo(map):zoneLayer.remove();
+  map.getPane('areaPane').style.opacity=on?'.3':'';   // Inseln abschwächen, damit die Widmung lesbar bleibt
+  document.getElementById('zoneLegend').classList.toggle('hidden',!on); if(on) zoneLegend();
+});
+function stLabels(){
+  const on=document.getElementById('tDistricts').checked;
+  on? (districtGroup.addTo(map), stLabelGroup.addTo(map)) : (districtGroup.remove(), stLabelGroup.remove());
+  map.getContainer().classList.toggle('hide-st', map.getZoom()<12.5);
+}
+document.getElementById('tDistricts').addEventListener('change',stLabels);
+map.on('zoomend',stLabels);
+document.querySelectorAll('#baseSeg button').forEach(b=>b.addEventListener('click',()=>setBase(b.dataset.base)));
+map.on('click',()=>{clearSel();});
+refresh(); stLabels();
+</script>
+</body>
+</html>

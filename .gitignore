@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+.claude/
+
+# Rohdaten (groß, aus den Quellen neu ladbar)
+*.osm.pbf
+werkzeuge/roh/
+werkzeuge/daten/a01.pdf
+werkzeuge/daten/boundaries_vorher.geojson
+
+# veraltete Skripte aus der ersten Version
+werkzeuge/build.py
+werkzeuge/template.html
+werkzeuge/mkdata.py
+werkzeuge/mklines.py
+werkzeuge/mk2.py
+werkzeuge/conv.py
+werkzeuge/overlap.py
+werkzeuge/plot.py
