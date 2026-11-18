@@ -10,6 +10,7 @@ werkzeuge/daten/boundaries_vorher.geojson
 
 # veraltete Skripte aus der ersten Version
 werkzeuge/build.py
+werkzeuge/masken.py.bak
 werkzeuge/template.html
 werkzeuge/mkdata.py
 werkzeuge/mklines.py

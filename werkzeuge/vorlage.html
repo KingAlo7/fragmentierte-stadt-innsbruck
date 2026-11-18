@@ -199,13 +199,13 @@ footer p{margin:0 0 4px}
       <details open>
         <summary>Was ist die „fragmentierte Stadt“?</summary>
         <p>Axel Borsdorf (Innsbruck) beschreibt, wie die kompakte, ringförmig gewachsene Stadt seit den 1970er‑Jahren in <b>Inseln</b> zerfällt: Konsum, Produktion, Wohnen, Bildung und Freizeit bilden voneinander getrennte, funktional spezialisierte Bereiche. Sie liegen oft an Autobahnen und Ausfallstraßen, sind durch <b>Barrieren</b> getrennt und werden durch <b>Pendelverkehr</b> verbunden. Die Grenze zwischen Stadt und Umland verschwimmt.</p>
-        <p><b>Karte</b> zeigt die Inseln – automatisch aus den Daten abgegrenzt. <b>Wohnen im Detail</b> zeigt als Heatmap, wo Einfamilienhäuser, Mehrfamilienhäuser und Großwohnanlagen dominieren und wo sie sich mischen. <b>Heatmap</b> berechnet dieselben Kategorien aus echten Gebäude‑, Geschäfts‑ und Landnutzungsdaten. <b>Verkehr</b> zeigt für alle Straßen den Verkehr über den Tag: gemessen an den Zählstellen, dazwischen aus einem an diesen Messungen kalibrierten Verkehrsmodell.</p>
+        <p><b>Karte</b> zeigt die Inseln – straßengenau aus der amtlichen Realnutzungskartierung des Landes Tirol; Hauptstraßen, Bahn und Inn trennen sie. <b>Wohnen im Detail</b> zeigt als Heatmap, wo Einfamilienhäuser, Mehrfamilienhäuser und Großwohnanlagen dominieren und wo sie sich mischen. <b>Heatmap</b> berechnet dieselben Kategorien aus echten Gebäude‑, Geschäfts‑ und Landnutzungsdaten. <b>Verkehr</b> zeigt für alle Straßen den Verkehr über den Tag: gemessen an den Zählstellen, dazwischen aus einem an diesen Messungen kalibrierten Verkehrsmodell.</p>
       </details>
       <p class="empty" style="margin-top:14px">Klicke auf eine Fläche, einen Punkt, eine Straße (bei eingeschaltetem Verkehr) oder eine Zählstelle (◆), um mehr zu erfahren.</p>
     </div>
 
     <footer>
-      <p>Flächen automatisch abgeleitet: An jeder Stelle gewinnt die stärkste Kategorie der Heatmap (Wohnen als eine Kategorie; im Detail-Tab innerhalb der Wohnflächen die stärkste Bauform); Grenzen geglättet, Splitter unter 4 ha entfernt. Heatmap: berechnet aus der amtlichen Flächenwidmung sowie OpenStreetMap‑Gebäuden, ‑Geschäften und ‑Landnutzung (Stand __OSMDATE__), Kerndichte σ ≈ __SIGMA__ m.</p>
+      <p>Inseln: Baublöcke der amtlichen Realnutzungskartierung (Land Tirol – tiris, M 1:1000, Stand 2025), zusammengefasst über Nebenstraßen; Hauptstraßen, Bahn, Autobahn und Inn trennen. Bauform des Wohnens aus den amtlichen Gebäuden (Höhe aus Laserscan); Bildung und Konsum in gemischten Blöcken aus Widmung und OSM. Namen: OSM‑Ortsteile, ‑Gelände und Grenzstraßen. Heatmap: berechnet aus der amtlichen Flächenwidmung sowie OpenStreetMap‑Gebäuden, ‑Geschäften und ‑Landnutzung (Stand __OSMDATE__), Kerndichte σ ≈ __SIGMA__ m.</p>
       <p>Verkehr: Zählstellen des Landes Tirol (Stundendaten Sept. 2026, Jahreswerte 2025) und der ASFINAG. Alle übrigen Straßen: eigenes Verkehrsmodell (Gravitationsmodell und Umlegung auf das OSM‑Straßennetz), an den Zählstellen kalibriert; Rohmodell R² = __R2__.</p>
       <p>Flächenwidmung und Einkaufszentren: Land Tirol – tiris (CC BY 4.0). Einwohner und Beschäftigte je Gemeinde: Statistik Austria, Abgestimmte Erwerbsstatistik 2024 (data.statistik.gv.at).</p>
       <p>Grenzen und Straßen: © OpenStreetMap‑Mitwirkende (ODbL).</p>
@@ -353,9 +353,9 @@ function showInfo(d){
     <h3>${d.name}</h3>
     <p class="lage">📍 ${d.lage}${d.ha?` · ${fmt(d.ha)} ha`:''}</p>
     <p>${d.text}</p>
-    ${d.mix&&Object.keys(d.mix).length?mixHTML(d):''}
+    ${(d.mix&&Object.keys(d.mix).length)||(d.bf&&Object.keys(d.bf).length)?mixHTML(d):''}
     ${d.modell?`<div class="modell"><b>Im Modell</b>${d.modell}</div>`:''}
-    ${d.rings?`<p class="src" style="margin-top:10px">Fläche automatisch abgeleitet: ${SUBK.includes(d.cat)?`Innerhalb der Wohnflächen ist hier „${c.short}“ die stärkste der drei Bauformen`:`Hier ist „${c.label}“ die stärkste der fünf Dichten`} aus amtlicher Flächenwidmung, OSM‑Gebäuden, ‑Geschäften und ‑Landnutzung.</p>`:''}
+    ${d.rings?`<p class="src" style="margin-top:10px">Abgrenzung: Baublöcke der amtlichen Realnutzungskartierung (Land Tirol – tiris)${SUBK.includes(d.cat)?`, hier mit überwiegend „${c.short}“ nach Geschoßfläche der amtlichen Gebäude`:''}. Begrenzt durch Hauptstraßen, Bahn und Inn.</p>`:''}
     ${backLink()}`;
   wireBack();
 }
@@ -366,9 +366,13 @@ function mixHTML(d){
   const bars=ks.map(k=>{const p=Math.round(d.mix[k]*100);
     return `<div class="row" style="--c:${CATS[k].hex}"><span class="lbl">${CATS[k].short}</span><span class="bar"><i style="width:${Math.min(100,p)}%"></i></span><span class="val">${p}%</span></div>`;}).join('');
   const g=d.geb||{}, p=d.poi||{};
-  const facts=[[g.haus,'Ein-/Zweifamilienhäuser'],[g.wohn,'Wohnbauten (Mehrfamilien)'],[g.hoch,'Gebäude ab 7 Geschoßen'],[g.betrieb,'Betriebs-/Bürogebäude'],
+  const bf=d.bf||{}, bk=Object.keys(bf).sort((a,b)=>bf[b]-bf[a]);
+  const bfb=bk.map(k=>{const p=Math.round(bf[k]*100);
+    return `<div class="row" style="--c:${CATS[k].hex}"><span class="lbl">${CATS[k].short}</span><span class="bar"><i style="width:${p}%"></i></span><span class="val">${p}%</span></div>`;}).join('');
+  const facts=[[g.haus,'Ein-/Zweifamilienhäuser'],[g.wohn,'Mehrfamilienhäuser'],[g.hoch,'Großwohnbauten'],[g.betrieb,'Betriebs-/Bürogebäude'],
     [p.shop,'Geschäfte'],[p.gastro,'Lokale'],[p.bildung,'Bildungseinrichtungen'],[p.betrieb,'Handwerk/Büros']].filter(f=>f[0]);
-  return `<div class="probe" style="width:auto;margin:4px 0 12px"><h4>Dichte der Kategorien in dieser Fläche</h4>${bars}</div>
+  return `${bk.length?`<div class="probe" style="width:auto;margin:4px 0 12px"><h4>Bauform nach Geschoßfläche (amtliche Gebäude)</h4>${bfb}</div>`:''}
+    ${ks.length?`<div class="probe" style="width:auto;margin:4px 0 12px"><h4>Dichte der Kategorien (Heatmap) in dieser Fläche</h4>${bars}</div>`:''}
     ${facts.length?`<div class="kpi">${facts.slice(0,6).map(f=>`<div><b>${fmt(f[0])}</b><span>${f[1]}</span></div>`).join('')}</div>`:''}`;
 }
 
@@ -376,7 +380,7 @@ function mixHTML(d){
 let selected=null;
 function baseStyle(cat){const h=CATS[cat].hex;
   if(SUBK.includes(cat)) return {pane:'areaPane',color:'#2b2f36',weight:1,opacity:.5,dashArray:'4 4',fillColor:'#fff',fillOpacity:0,lineJoin:'round'};
-  return {pane:'areaPane',color:h,weight:1.6,opacity:.85,fillColor:h,fillOpacity:.35,lineJoin:'round'};}
+  return {pane:'areaPane',color:h,weight:1.1,opacity:.9,fillColor:h,fillOpacity:.45,lineJoin:'round'};}
 function hiStyle(cat){return SUBK.includes(cat)?{weight:2.4,opacity:.95,fillOpacity:.12}:{weight:3,opacity:1,fillOpacity:.6};}
 function clearSel(){ if(selected){selected.setStyle(selected._base);selected=null;} }
 const catLayers = {}; Object.keys(CATS).forEach(k=>catLayers[k]={areas:L.layerGroup(),points:L.layerGroup(),lines:L.layerGroup()});
