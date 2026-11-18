@@ -49,22 +49,25 @@ Zusätzliche Ebenen:
   | Grünanlagen, Sport, Golf, Camping, Freizeit | Erholung & Freizeit. Schipisten am Berg sind ausgenommen |
   | Flugverkehr und OSM-Flughafengelände | Barriere |
   | überwiegend als Bildung gewidmet oder OSM-Schul- bzw. Hochschulgelände | Bildung |
-  | Sonstige Nutzung, etwa Kliniken | ohne Kategorie |
+  | Sonstige Nutzung, etwa Kliniken | nach Widmung, sonst wie die Nachbarblöcke |
 
 - **Bauform:** Sie stammt aus den amtlichen Gebäuden (tiris „Gebäude“, Höhe aus Laserscan). Die Geschoßzahl ist die Höhe geteilt durch 3,1 m:
   - Einfamilienhaus: höchstens 260 m² und höchstens 3 Geschoße
   - Großwohnbau: ab 7 Geschoßen, oder ab 1100 m² Grundfläche mit mindestens 4 Geschoßen
   - Mehrfamilienhaus: alles dazwischen
   - Je Insel werden die Anteile nach Geschoßfläche angegeben.
-- **Inseln:**
-  - Blöcke derselben Kategorie werden über Nebenstraßen hinweg zusammengefasst (bis etwa 24 m Abstand).
-  - Hauptstraßen (OSM tertiary und höher), Autobahn, Bahn und Inn trennen sie.
-  - Die Inseln werden an Gemeindegrenzen geteilt. Inseln unter 0,25 ha fallen weg.
+- **Generalisierung (10-m-Raster):**
+  - Siedlungsgebiet = alle Blöcke plus Straßen und Lücken dazwischen (Schließen mit 30 m; Löcher unter 3 ha werden gefüllt).
+  - Straßenflächen, Lücken und Blöcke ohne Kategorie bekommen die Nutzung des nächstgelegenen Blocks. Blöcke mit „sonstiger Nutzung“ werden vorher, wo möglich, nach ihrer Widmung zugeordnet.
+  - Ein Mehrheitsfilter (70 m) glättet den Flickenteppich. Flecken unter 2 ha (Bauformen: 1 ha) gehen an die umgebende Nutzung.
+  - Nur Hauptstraßen (OSM secondary und höher), Autobahn, Bahn und Inn teilen die Gebiete, als feine Linie. Die Straßenfläche selbst ist gefüllt.
+  - Die Gebiete werden an Gemeindegrenzen geteilt.
+  - Dadurch verschwinden kleine Schulen und Läden in ihrer Umgebung. Bildung und Konsum zeigen nur noch größere Standorte.
 - **Namen:** Bezeichnung + Ort (+ Bauform) + (Grenzstraßen), etwa „Wohngebiet Pradl – Mehrfamilienhäuser (Andechsstraße – Amraser-See-Straße – Reichenauer Straße)“.
   - **Bezeichnung:** Eigenname aus OSM, wenn ein benanntes Gelände mindestens die halbe Insel ausmacht. Bei Gewerbe zählen Gebietsnamen wie „Gewerbegebiet Roßau“. Sonst steht die genaue Nutzung da.
   - **Ort:** alle OSM-Ortsteile in der Insel, sonst der nächste bis 300 m, sonst Stadtteil oder Gemeinde.
   - **Grenzstraßen:** die bis zu drei benannten Straßen, die die Insel am längsten begleiten.
-- **Prüfung:** Die neuen Inseln wurden gegen OSM-Objekte geprüft, die nicht zur Abgrenzung verwendet wurden. Der Anteil, der in der Insel der passenden Kategorie liegt, ist deutlich gestiegen:
+- **Prüfung** (Stand vor der Generalisierung): Die straßengenauen Blöcke wurden gegen OSM-Objekte geprüft, die nicht zur Abgrenzung verwendet wurden. Der Anteil, der in der Insel der passenden Kategorie liegt, ist deutlich gestiegen:
 
   | OSM-Objekte | vorher (Heatmap-Blobs) | jetzt |
   |---|---|---|

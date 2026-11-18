@@ -122,6 +122,12 @@ for b in blocks:
         cat = 'konsum'
     if cat != 'barriere' and (ws.get('bildung', 0) >= 0.5 or eo >= 0.5 or (cat == 'sonst' and (ws.get('bildung', 0) >= 0.3 or eo >= 0.3))):
         cat = 'bildung'
+    if cat == 'sonst' and ws:   # „sonstige Nutzung“ (Kliniken, Ämter …): nach der Widmung zuordnen, sonst später von den Nachbarn füllen
+        dw = max(ws, key=ws.get)
+        if ws[dw] >= 0.5:
+            cat = {'kern': 'konsum', 'handel': 'konsum', 'gewerbe': 'gewerbe', 'betrieb': 'gewerbe', 'bildung': 'bildung',
+                   'freizeit': 'erholung', 'wohn': 'wohnen', 'wohnmisch': 'wohnen', 'gefwohn': 'wohnen', 'misch': 'wohnen',
+                   'dorf': 'wohnen'}.get(dw, 'sonst')
     b['cat'] = cat
     if cat == 'wohnen':
         fa = Counter()
@@ -133,37 +139,106 @@ for b in blocks:
     stat[cat] += ha
 print('Fläche je Kategorie (ha):', {k: round(v) for k, v in stat.items()})
 
-# --- Inseln: Blöcke derselben Kategorie über Nebenstraßen hinweg verschmelzen (bis ~24 m Abstand);
-#     Hauptstraßen (ab Landes-/Gemeindestraße mit Verbindungsfunktion, OSM tertiary+), Bahn, Autobahn und Inn trennen ---
+# --- Generalisierung auf einem 10-m-Raster ---
+# 1. Blöcke rastern. 2. Siedlungsgebiet = Blöcke + Straßen/Lücken dazwischen (Schließen mit 30 m, Löcher < 3 ha füllen).
+# 3. Straßen, Lücken und nicht zuordenbare Blöcke erhalten die Nutzung des nächstgelegenen Blocks.
+# 4. Mehrheitsfilter (70 m) gegen Flickenteppich; Flecken unter MIN_HA gehen an die umgebende Nutzung.
+# 5. Vektorisieren mit gemeinsamen Grenzen (keine Lücken, keine Überlappung); nur Hauptstraßen (OSM secondary+),
+#    Autobahn, Bahn und Inn teilen die Gebiete – als feine Linie, die Straßenfläche selbst ist gefüllt.
+import numpy as np
+from PIL import Image, ImageDraw
+from scipy import ndimage as ndi
+import contourpy
 from shapely.geometry import LineString
+RES = 10.0
+MIN_HA, MIN_HA_SUB = 2.0, 1.0
+GEM = [(to_m(shape(f['geometry'])).buffer(0), f['properties']['name']) for f in json.load(open('../boundaries.geojson', encoding='utf8'))['features']
+       if f['properties']['kind'] == 'gemeinde']
+STUDY = unary_union([g for g, _ in GEM])
+X0, Y0, X1, Y1 = STUDY.bounds
+WR, HR = int((X1 - X0) / RES) + 1, int((Y1 - Y0) / RES) + 1
+def px(ring): return [((x - X0) / RES, (Y1 - y) / RES) for x, y in ring.coords]
+def raster(items, order):
+    img = Image.new('I', (WR, HR), 0); dr = ImageDraw.Draw(img)
+    for k in order:
+        for g in items.get(k, []):
+            for p in (g.geoms if hasattr(g, 'geoms') else [g]):
+                if p.geom_type != 'Polygon': continue
+                dr.polygon(px(p.exterior), fill=order.index(k) + 1)
+                for r in p.interiors: dr.polygon(px(r), fill=0)
+    return np.array(img, dtype=np.int32)
+def fuellen(lab, mask):
+    """Zellen ohne Wert innerhalb von mask erhalten den Wert der nächsten belegten Zelle."""
+    if not (lab > 0).any(): return lab
+    _, (ir, ic) = ndi.distance_transform_edt(lab == 0, return_indices=True)
+    out = lab[ir, ic]; out[~mask] = 0
+    return out
+def mehrheit(lab, n, mask, size):
+    sc = np.stack([ndi.uniform_filter((lab == i).astype(np.float32), size) for i in range(1, n + 1)])
+    out = sc.argmax(0) + 1; out[~mask] = 0
+    return out
+def kleine_weg(lab, n, mask, min_cells, runden=3):
+    for _ in range(runden):
+        changed = False
+        for i in range(1, n + 1):
+            cc, m = ndi.label(lab == i)
+            if not m: continue
+            sz = ndi.sum(np.ones_like(cc), cc, index=np.arange(1, m + 1))
+            small = np.isin(cc, np.where(sz < min_cells)[0] + 1)
+            if small.any(): lab[small] = 0; changed = True
+        lab = fuellen(lab, mask)
+        if not changed: break
+    return lab
+
+MAINK = ['wohnen', 'sonst', 'gewerbe', 'konsum', 'erholung', 'bildung', 'barriere']   # Malreihenfolge: später gewinnt
+lab = raster({k: [b['g'] for b in blocks if b['cat'] == k] for k in MAINK}, MAINK)
+occ = lab > 0
+siedl = ndi.binary_closing(occ, structure=np.ones((3, 3)), iterations=3) | occ
+holes = ndi.binary_fill_holes(siedl) & ~siedl
+hc, hn = ndi.label(holes)
+if hn:
+    hs = ndi.sum(np.ones_like(hc), hc, index=np.arange(1, hn + 1))
+    siedl |= np.isin(hc, np.where(hs * RES * RES < 3e4)[0] + 1)
+study_r = raster({'s': [STUDY]}, ['s']) > 0
+siedl &= study_r
+lab[lab == MAINK.index('sonst') + 1] = 0              # nicht zuordenbare Blöcke wie Straßen behandeln
+lab = fuellen(lab, siedl)
+lab = mehrheit(lab, len(MAINK), siedl, 7)
+lab = kleine_weg(lab, len(MAINK), siedl, MIN_HA * 1e4 / RES ** 2)
+SUBK = ['gehoben', 'gemischt', 'gross']
+wmask = lab == MAINK.index('wohnen') + 1
+sl = raster({k: [b['g'] for b in blocks if b.get('sub') == k] for k in SUBK}, SUBK)
+sl[~wmask] = 0
+sl = fuellen(sl, wmask); sl = mehrheit(sl, 3, wmask, 7); sl = kleine_weg(sl, 3, wmask, MIN_HA_SUB * 1e4 / RES ** 2)
+
 cuts = []
 for e in json.load(open(fnet, encoding='utf8'))['edges']:
-    if e['k'] < 3: continue
+    if e['k'] < 4: continue
     g = e['g']; pts = []; la, lo = 0, 0
     for i in range(0, len(g), 2):
         la += g[i]; lo += g[i + 1]; pts.append((lo / 1e5 * KX, la / 1e5 * KY))
-    if len(pts) > 1: cuts.append(LineString(pts).buffer(4 + e['k']))
+    if len(pts) > 1: cuts.append(LineString(pts))
 for f in json.load(open(flines, encoding='utf8'))['features']:
-    cuts.append(to_m(shape(f['geometry'])).buffer(9))
-CUT = unary_union(cuts)
-def islands(groups, min_ha):
+    cuts.append(to_m(shape(f['geometry'])))
+CUT = unary_union(cuts).buffer(1.0)
+def vektor(lab, keys, min_ha):
+    n = len(keys)
+    M = np.stack([ndi.gaussian_filter((lab == i).astype(np.float32), 1.0) for i in range(0, n + 1)])
     out = []
-    for key, gs in groups.items():
-        u = unary_union([x.buffer(12.0) for x in gs]).buffer(-12.0).difference(CUT)
-        for p in (list(u.geoms) if hasattr(u, 'geoms') else [u]):
-            if p.geom_type == 'Polygon' and p.area / 1e4 >= min_ha:
-                out.append((key, p))
+    for i in range(1, n + 1):
+        if not (lab == i).any(): continue
+        f = np.pad(M[i] - np.delete(M, i, axis=0).max(0), 1, constant_values=-1)
+        pts, offs = contourpy.contour_generator(z=f, fill_type=contourpy.FillType.OuterOffset).filled(0, 10)
+        for P_, O in zip(pts, offs):
+            rings = [[(X0 + (x - 1 + .5) * RES, Y1 - (y - 1 + .5) * RES) for x, y in P_[O[j]:O[j + 1]]] for j in range(len(O) - 1)]
+            try: pg = Polygon(rings[0], rings[1:]).buffer(0)
+            except Exception: continue
+            q = pg.difference(CUT)
+            out += [(keys[i - 1], x) for x in (q.geoms if hasattr(q, 'geoms') else [q]) if x.geom_type == 'Polygon' and x.area / 1e4 >= min_ha]
     return out
-main = islands({k: [b['g'] for b in blocks if b['cat'] == k] for k in ('konsum', 'gewerbe', 'wohnen', 'bildung', 'erholung', 'barriere')}, 0.25)
-sub = islands({k: [b['g'] for b in blocks if b.get('sub') == k] for k in ('gehoben', 'gemischt', 'gross')}, 0.25)
-AIR = unary_union([p for k, p in main if k == 'barriere'])
-def ohne_air(L):
-    out = []
-    for k, p in L:
-        q = p if k == 'barriere' else p.difference(AIR)
-        out += [(k, x) for x in (q.geoms if hasattr(q, 'geoms') else [q]) if x.geom_type == 'Polygon' and x.area >= 2500]
-    return out
-main, sub = ohne_air(main), ohne_air(sub)
+main = vektor(lab, MAINK, 0.5)
+sub = vektor(sl, SUBK, 0.3)
+print('Siedlungsgebiet', round(siedl.sum() * RES * RES / 1e4), 'ha; zugeordnet', round((lab > 0).sum() * RES * RES / 1e4), 'ha')
 
 # an Gemeindegrenzen teilen (jede Insel gehört genau einer Gemeinde), außerhalb des Untersuchungsgebiets weglassen
 GEM = [(to_m(shape(f['geometry'])).buffer(0), f['properties']['name']) for f in json.load(open('../boundaries.geojson', encoding='utf8'))['features']
@@ -177,6 +252,7 @@ def nach_gemeinde(L):
             out += [(k, x, gn) for x in (q.geoms if hasattr(q, 'geoms') else [q]) if x.geom_type == 'Polygon' and x.area >= 2500]
     return out
 main, sub = nach_gemeinde(main), nach_gemeinde(sub)
+main = [m for m in main if m[0] != 'sonst']
 
 # Kennzahlen je Insel: vorherrschende Landnutzungsklasse, Bauform-Anteile nach Geschoßfläche (amtliche Gebäude)
 btree = STRtree([b['g'] for b in blocks])
